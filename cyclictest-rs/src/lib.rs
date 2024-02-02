@@ -28,6 +28,10 @@ Observer real-time prio with:
     unclear why there is no prio displayed in ps
     for 6.1.0-17-rt-amd64
 
+observe dma setting
+
+    sudo cat /dev/cpu_dma_latency
+
 */
 
 #[derive(Parser, Debug)]
@@ -149,14 +153,17 @@ fn mlockall() -> Result<(), Box<dyn Error>> {
 /* Latency trick, see cyclictest*/
 fn set_latency_target() -> Result<File, Box<dyn Error>> {
     let filename = String::from("/dev/cpu_dma_latency");
+
+    // plain open did not work out
     //let mut f = File::open(filename)?;
     let mut f = OpenOptions::new().write(true).open(filename)?;
 
     f.write_all(&[0, 0, 0, 0])?;
-    //f.flush();
-    //f.sync_all();
-    //f.sync_data();
     //f.set_len(4)?; // did not work out on the 6.10 Kernel
+
+    //f.flush(); // never helped
+    //f.sync_all(); // never helped
+    //f.sync_data(); // never helped
     Ok(f)
 }
 
@@ -282,6 +289,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     for _i in 0..10 {
         sample_clock_nanosleep_with_duration(1000, 1_000_000)?;
     }
+
     Ok(())
 }
 
