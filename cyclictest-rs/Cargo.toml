@@ -11,3 +11,4 @@ authors = ["Michael Abel <mabel@bitmuster.org>", "Michael Abel <info@abel-ikt.de
 
 [dependencies]
 clap = { version = "4.4.18", features = ["derive"] }
+libc = "0.2.153"
