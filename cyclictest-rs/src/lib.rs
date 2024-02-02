@@ -153,10 +153,10 @@ fn set_latency_target() -> Result<File, Box<dyn Error>> {
     let mut f = OpenOptions::new().write(true).open(filename)?;
 
     f.write_all(&[0, 0, 0, 0])?;
-    f.set_len(4)?;
     //f.flush();
     //f.sync_all();
     //f.sync_data();
+    //f.set_len(4)?; // did not work out on the 6.10 Kernel
     Ok(f)
 }
 
