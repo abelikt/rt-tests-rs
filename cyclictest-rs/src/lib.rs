@@ -1,7 +1,10 @@
 use std::error::Error;
+use std::fs::File;
 use std::mem;
-use std::thread;
+use std::fs::OpenOptions;
 use std::time::{Duration, Instant};
+use std::thread;
+use std::io::Write;
 
 use clap::Parser;
 use errno::errno;
@@ -143,6 +146,20 @@ fn mlockall() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/* Latency trick, see cyclictest*/
+fn set_latency_target() -> Result<File, Box<dyn Error>> {
+    let filename = String::from("/dev/cpu_dma_latency");
+    //let mut f = File::open(filename)?;
+    let mut f = OpenOptions::new().write(true).open(filename)?;
+
+    f.write_all(&[0, 0, 0, 0])?;
+    f.set_len(4)?;
+    //f.flush();
+    //f.sync_all();
+    //f.sync_data();
+    Ok(f)
+}
+
 
 fn setscheduler() -> Result<(), Box<dyn Error>> {
     // https://linux.die.net/man/2/sched_setscheduler
@@ -261,6 +278,8 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     setscheduler()?;
     setaffinity();
     block_alarm();
+
+    let _file = set_latency_target();
 
     for _i in 0..10 {
         sample_clock_nanosleep_with_duration(1000, 1_000_000)?;
