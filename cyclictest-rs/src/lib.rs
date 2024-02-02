@@ -1,10 +1,10 @@
 use std::error::Error;
 use std::fs::File;
-use std::mem;
 use std::fs::OpenOptions;
-use std::time::{Duration, Instant};
-use std::thread;
 use std::io::Write;
+use std::mem;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use clap::Parser;
 use errno::errno;
@@ -160,7 +160,6 @@ fn set_latency_target() -> Result<File, Box<dyn Error>> {
     Ok(f)
 }
 
-
 fn setscheduler() -> Result<(), Box<dyn Error>> {
     // https://linux.die.net/man/2/sched_setscheduler
     // https://crates.io/crates/scheduler
@@ -273,7 +272,6 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
-
     mlockall()?;
     setscheduler()?;
     setaffinity();
