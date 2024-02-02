@@ -294,28 +294,28 @@ fn sample_clock_nanosleep_with_gettime(
 ) -> Result<(), Box<dyn Error>> {
 
     let sleep_time :u64 = wait_time_ns as u64;
-    let mut diff: u64 =0 ;
+    let mut diff: i64 =0 ;
     let mut accumulator: u64 = 0; //probably not the right value here
-    let mut max_diff: u64 = 0;
+    let mut max_diff: i64 = 0;
 
 
     for _s in 0..samples {
-        let start : u64 = clock_gettime().try_into().unwrap();
+        let start : i64 = clock_gettime();
         sleep_clock_nanosleep();
-        let end : u64 = clock_gettime().try_into().unwrap();
+        let end : i64 = clock_gettime();
         diff = end - start;
 
         if diff < 0 { // hack for now
             diff += 1_000_000_000;
         }
 
-        accumulator += diff;
+        accumulator += diff as u64;
         if diff > max_diff {
             max_diff = diff;
         }
     }
-    let average_latency = accumulator / (samples as u64) - sleep_time;
-    let max_latency = max_diff - sleep_time;
+    let average_latency :u64 = accumulator / (samples as u64) - sleep_time;
+    let max_latency :u64 = max_diff as u64 - sleep_time;
     println!(
         "Average Latency {:?} Maximal Latency {:?}",
         average_latency, max_latency
