@@ -318,7 +318,7 @@ fn sample_clock_nanosleep_with_gettime(
     let max_latency :u64 = max_diff as u64 - sleep_time;
     println!(
         "Average Latency {:?} Maximal Latency {:?}",
-        average_latency, max_latency
+        average_latency as f64 / 1000f64, max_latency as f64 /1000f64
     );
     Ok(())
 }
