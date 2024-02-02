@@ -1,4 +1,6 @@
 use std::error::Error;
+use std::thread;
+use std::time::Duration;
 
 use clap::Parser;
 
@@ -12,7 +14,23 @@ struct Args {
     nanosleepgettime: bool,
 }
 
+fn sample_clock_nanosleep_with_duration(
+    samples: u32,
+    wait_time_ns: u32,
+) -> Result<(), Box<dyn Error>> {
+    let sleep_time = Duration::from_nanos(wait_time_ns.into());
+
+    for _s in 0..samples {
+        thread::sleep(sleep_time);
+    }
+
+    Ok(())
+}
+
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
+    for _i in 0..10 {
+        sample_clock_nanosleep_with_duration(1000, 1000)?;
+    }
     Ok(())
 }
 
