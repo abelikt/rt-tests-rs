@@ -271,6 +271,58 @@ fn sample_clock_nanosleep_with_duration(
     Ok(())
 }
 
+fn clock_gettime() -> i64 {
+    // https://docs.rs/libc/0.2.153/libc/fn.clock_gettime.html
+
+    let mut timespec = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let clockid: libc::clockid_t = libc::CLOCK_MONOTONIC;
+    let ret;
+
+    unsafe { ret = libc::clock_gettime(clockid, &mut timespec) }
+    if ret != 0 {
+        println!("clock_gettime fails");
+    }
+    timespec.tv_nsec
+}
+
+fn sample_clock_nanosleep_with_gettime(
+    samples: u32,
+    wait_time_ns: u32,
+) -> Result<(), Box<dyn Error>> {
+
+    let sleep_time :u64 = wait_time_ns as u64;
+    let mut diff: u64 =0 ;
+    let mut accumulator: u64 = 0; //probably not the right value here
+    let mut max_diff: u64 = 0;
+
+
+    for _s in 0..samples {
+        let start : u64 = clock_gettime().try_into().unwrap();
+        sleep_clock_nanosleep();
+        let end : u64 = clock_gettime().try_into().unwrap();
+        diff = end - start;
+
+        if diff < 0 { // hack for now
+            diff += 1_000_000_000;
+        }
+
+        accumulator += diff;
+        if diff > max_diff {
+            max_diff = diff;
+        }
+    }
+    let average_latency = accumulator / (samples as u64) - sleep_time;
+    let max_latency = max_diff - sleep_time;
+    println!(
+        "Average Latency {:?} Maximal Latency {:?}",
+        average_latency, max_latency
+    );
+    Ok(())
+}
+
 pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
     for _i in 0..10 {
         sample_sleep_with_duration(1000, 1_000_000)?;
@@ -294,6 +346,17 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn run_with_nanosleep_gettime() -> Result<(), Box<dyn Error>> {
+    mlockall()?;
+    setscheduler()?;
+    setaffinity();
+    block_alarm();
+
+    let _file = set_latency_target()?;
+
+    for _i in 0..10 {
+        sample_clock_nanosleep_with_gettime(1000, 1_000_000)?;
+    }
+
     Ok(())
 }
 
