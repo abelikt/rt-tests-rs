@@ -4,6 +4,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use clap::Parser;
+use errno::errno;
 
 /*
 
@@ -122,6 +123,26 @@ fn block_alarm() {
     }
 }
 
+fn mlockall() -> Result<(), Box<dyn Error>> {
+    // https://linux.die.net/man/3/mlockall
+    // mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+
+    let flags: libc::c_int = libc::MCL_CURRENT | libc::MCL_FUTURE;
+
+    match unsafe { libc::mlockall(flags) } {
+        0 => {}
+        -1 => {
+            let e = errno();
+            let code = e.0;
+            println!("Error {}: {}", code, e);
+            return Err("Mlocall fails".into());
+        }
+        _ => return Err("Mlocall fails strangely".into()),
+    }
+
+    Ok(())
+}
+
 
 fn setscheduler() -> Result<(), Box<dyn Error>> {
     // https://linux.die.net/man/2/sched_setscheduler
@@ -236,6 +257,7 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
 
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 
+    mlockall()?;
     setscheduler()?;
     setaffinity();
     block_alarm();
