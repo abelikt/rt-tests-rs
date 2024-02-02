@@ -1,3 +1,5 @@
+use cyclictest_rs;
+
 fn main() {
-    println!("Hello, world!");
+    cyclictest_rs::cyclictest_main();
 }
