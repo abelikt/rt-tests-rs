@@ -83,6 +83,46 @@ fn getscheduler() {
     println!("Getscheduler {}", ret);
 }
 
+fn block_alarm() {
+    //sigemptyset(&sigset);
+    //sigaddset(&sigset, signum);
+    //sigprocmask (SIG_BLOCK, &sigset, NULL);
+
+    // https://manpages.debian.org/bookworm/manpages-dev/alarm.2.en.html
+    // https://manpages.debian.org/bookworm/manpages-dev/signal.2.en.html
+    // https://manpages.debian.org/bookworm/manpages-dev/sigprocmask.2.en.html
+
+    //https://docs.rs/libc/0.2.153/libc/fn.sigemptyset.html
+
+    let mut ret;
+    let mut sigset: libc::sigset_t = unsafe { mem::zeroed() };
+
+    // passing libc::PT_NULL did not work
+    let mut oldsigset: libc::sigset_t = unsafe { mem::zeroed() };
+
+    unsafe {
+        ret = libc::sigemptyset(&mut sigset);
+    }
+    if ret != 0 {
+        println!("sigemptyset fails");
+    }
+
+    unsafe {
+        ret = libc::sigaddset(&mut sigset, libc::SIGALRM);
+    }
+    if ret != 0 {
+        println!("sigaddset fails");
+    }
+
+    unsafe {
+        ret = libc::sigprocmask(libc::SIG_BLOCK, &sigset, &mut oldsigset);
+    }
+    if ret != 0 {
+        println!("sigaddset fails");
+    }
+}
+
+
 fn setscheduler() -> Result<(), Box<dyn Error>> {
     // https://linux.die.net/man/2/sched_setscheduler
     // https://crates.io/crates/scheduler
@@ -198,6 +238,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 
     setscheduler()?;
     setaffinity();
+    block_alarm();
 
     for _i in 0..10 {
         sample_clock_nanosleep_with_duration(1000, 1_000_000)?;
