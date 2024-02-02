@@ -284,7 +284,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     setaffinity();
     block_alarm();
 
-    let mut file = set_latency_target()?;
+    let _file = set_latency_target()?;
 
     for _i in 0..10 {
         sample_clock_nanosleep_with_duration(1000, 1_000_000)?;
