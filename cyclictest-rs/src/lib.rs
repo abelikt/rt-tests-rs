@@ -39,6 +39,42 @@ struct Args {
     nanosleepgettime: bool,
 }
 
+fn setaffinity() {
+    // https://linux.die.net/man/2/sched_setaffinity
+    // https://docs.rs/libc/0.2.153/libc/fn.sched_setaffinity.html
+
+    // -> https://crates.io/crates/nix
+    // https://docs.rs/nix/latest/src/nix/sched.rs.html#181-186
+    // https://doc.rust-lang.org/std/mem/fn.zeroed.html
+
+    let ret;
+    let pid = 0;
+    let cpusetsize: libc::size_t = 12;
+
+    let mut cpuset: libc::cpu_set_t = unsafe { mem::zeroed() };
+
+    unsafe { libc::CPU_ZERO(&mut cpuset) };
+
+    let pmask: *mut libc::cpu_set_t = &mut cpuset;
+
+    unsafe { libc::CPU_SET(1, &mut cpuset) };
+
+    let isset: bool;
+    unsafe { isset = libc::CPU_ISSET(1, &cpuset) };
+
+    if !isset {
+        println!("CPU_ISSET fails");
+    }
+
+    unsafe {
+        ret = libc::sched_setaffinity(pid, cpusetsize, pmask);
+    }
+
+    if ret != 0 {
+        println!("setaffinity fails");
+    }
+}
+
 fn getscheduler() {
     let ret;
     unsafe {
@@ -159,7 +195,9 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
+
     setscheduler()?;
+    setaffinity();
 
     for _i in 0..10 {
         sample_clock_nanosleep_with_duration(1000, 1_000_000)?;
