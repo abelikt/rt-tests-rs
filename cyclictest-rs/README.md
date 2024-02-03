@@ -13,6 +13,8 @@ is used here.
 
 # State of implementation
 
+State:
+
 * So far, it started to work and to show similar latencies like the original
 cyclictest.
 * The implementation is still limited to one thread and has no good reporting.
@@ -22,7 +24,8 @@ To-Dos:
 
 * Extend to multiple threads
 * Record histograms
-* Plot nice histograms (maybe https://www.osadl.org/Create-a-latency-plot-from-cyclictest-hi.bash-script-for-latency-plot.0.html?&no_cache=1&sword_list[0]=script)
+* Plot nice histograms (maybe like in the
+    [latency-farm](https://www.osadl.org/Create-a-latency-plot-from-cyclictest-hi.bash-script-for-latency-plot.0.html?&no_cache=1&sword_list[0]=script))
 * Generate background load for tests
 * Check multiple Platforms
 
@@ -37,7 +40,7 @@ Get an overview of current latency
 
 Observe real-time prio with:
 
-    ps  -m -C cyclictest-rs -o pid,pri,rtprio,uid,cputime,cmd
+    ps  -m -C cyclictest -o pid,pri,rtprio,uid,cputime,cmd
 
 
 # Run Tests
@@ -46,6 +49,10 @@ Run With:
 
     cargo build && sudo target/debug/cyclictest-rs  --nanosleep
     cargo build --release && sudo target/release/cyclictest-rs  --nanosleep
+
+Observe rt prio:
+
+    ps  -m -C cyclictest-rs -o pid,pri,rtprio,uid,cputime,cmd
 
 
 # Test Systems

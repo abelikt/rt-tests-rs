@@ -3,7 +3,8 @@
 
 The idea behind this project is to provide some real-time tests written in Rust.
 
-So far there is only cyclictest, see cyclictest-rs folder.
+So far there is only cyclictest, see cyclictest-rs folder
+[./cyclictest-rs/README.md](./cyclictest-rs/README.md).
 
 The target is not to rewrite rt-tests, I want to find out how a real-time
 program written in Rust has to look like, what is allowed in rt contexts and
@@ -13,7 +14,7 @@ The question is how Rust programs are performing regarding real-time operations.
 How latencies look like an if we want to, for example want to write control
 systems like PLCs or CNCs with Rust? What crated are needed or should be avoided?
 
-To test, a Linux System with a PREEMPT_RT Kernel is needed. Some distributions
+To test, a Linux system with a PREEMPT_RT Kernel is needed. Some distributions
 offer prepacked Kernels (e.g. Debian), for others you need to patch and 
 compile yourself.
 
@@ -36,7 +37,7 @@ Dynamic memory management for sure but is there something else?
 
 See also:
 * [1] C.M. Kormanyos, Real-Time C++: Efficient Object-Oriented and Template
-    Microcontroller Programming,ISBN 9783662629956.
+    Microcontroller Programming, ISBN 9783662629956.
     Also: https://github.com/ckormanyos/real-time-cpp
 
 
@@ -49,7 +50,7 @@ See also:
 
 # System preparation
 
-Under Debian:
+Under Debian Bookworm e.g.:
 
     apt install rt-tests
     apt install linux-image-6.1.0-17-rt-amd64
