@@ -19,6 +19,7 @@ compile yourself.
 
 Also, this is a learners project, don't expect production ready software.
 
+
 # Rust for Real-Time Systems?
 
 Rust seems to have everything needed for (soft)-real-time systems.
@@ -38,12 +39,22 @@ See also:
     Microcontroller Programming,ISBN 9783662629956.
     Also: https://github.com/ckormanyos/real-time-cpp
 
-# Original RT-Tests
+
+## Open Questions
+
+* What is the performance impact to trigger memory management?
+* What is the performance impact to use trait objects for error handling, like `Box<dyn Error>`?
+* Can we use parts of the std library or can we only use core?
+
+
+# System preparation
 
 Under Debian:
 
     apt install rt-tests
     apt install linux-image-6.1.0-17-rt-amd64
+
+Reboot into the rt Kernel.
 
 # Links
 
