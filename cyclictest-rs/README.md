@@ -50,6 +50,25 @@ Run With:
     cargo build && sudo target/debug/cyclictest-rs  --nanosleep
     cargo build --release && sudo target/release/cyclictest-rs  --nanosleep
 
+On my test system (10K samples):
+
+    $ cargo build --release && sudo target/release/cyclictest-rs --nanosleep
+    Getscheduler 0
+    Getscheduler 1
+    Average Latency 2.343µs Maximal Latency 6.155µs
+    Average Latency 2.322µs Maximal Latency 7.417µs
+    Average Latency 2.328µs Maximal Latency 5.643µs
+    Average Latency 2.317µs Maximal Latency 4.211µs
+    Average Latency 2.343µs Maximal Latency 4.24µs
+    Average Latency 2.344µs Maximal Latency 4.802µs
+    Average Latency 2.351µs Maximal Latency 5.713µs
+    Average Latency 2.393µs Maximal Latency 9.961µs
+    Average Latency 2.389µs Maximal Latency 7.657µs
+    Average Latency 2.417µs Maximal Latency 8.63µs
+
+This is comparable to cyclictests results, but still a bit worse.
+Sometimes there are about 30µs this needs more investigation.
+
 Observe rt prio:
 
     ps  -m -C cyclictest-rs -o pid,pri,rtprio,uid,cputime,cmd
@@ -58,6 +77,8 @@ Observe rt prio:
 # Test Systems
 
 Development:
+
 * OS: Debian Bookworm 12.4
 * cpuinfo : `AMD Ryzen 5 2600 Six-Core Processor`
 * uname : `6.1.0-17-rt-amd64 #1 SMP PREEMPT_RT Debian 6.1.69-1 (2023-12-30) x86_64 GNU/Linux`
+* Type: Development system; mate desktop and other stuff is running
