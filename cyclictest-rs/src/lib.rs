@@ -131,22 +131,22 @@ pub fn block_alarm() -> Result<(), &'static str> {
 }
 
 fn mlockall() -> Result<(), Box<dyn Error>> {
-    //! Lock current and future memory pages
+    //! Lock all current and future memory pages
     // https://linux.die.net/man/3/mlockall
-    // mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+    // https://docs.rs/libc/latest/libc/fn.mlockall.html
+    // TODO Maybe replace with nix version https://docs.rs/nix/0.27.1/nix/sys/mman/fn.mlockall.html
 
     let flags: libc::c_int = libc::MCL_CURRENT | libc::MCL_FUTURE;
     match unsafe { libc::mlockall(flags) } {
-        0 => {}
+        0 => Ok(()),
         -1 => {
             let e = errno();
             let code = e.0;
             println!("Error {}: {}", code, e);
-            return Err("Mlocall fails".into());
+            Err("Mlocall fails".into())
         }
-        _ => return Err("Mlocall fails strangely".into()),
+        _ => Err("Mlocall fails strangely".into()),
     }
-    Ok(())
 }
 
 /* Latency trick, see cyclictest*/
@@ -160,35 +160,31 @@ fn set_latency_target() -> Result<File, Box<dyn Error>> {
     f.write_all(&[0, 0, 0, 0])?;
     //f.set_len(4)?; // did not work out on the 6.10 Kernel
 
-    //f.flush(); // never helped
-    //f.sync_all(); // never helped
-    //f.sync_data(); // never helped
     Ok(f)
 }
 
-fn setscheduler() -> Result<(), Box<dyn Error>> {
+fn setscheduler(prio: i32) -> Result<(), Box<dyn Error>> {
+    //! Set our prority, will fail if we request a real time prio and policy
+    //! without root rights.
+    //
     // https://linux.die.net/man/2/sched_setscheduler
-    // https://crates.io/crates/scheduler
-    // https://docs.rs/scheduler/0.1.3/scheduler/
-    // https://github.com/terminalcloud/rust-scheduler
-
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setscheduler.html
 
     getscheduler()?;
-
-    let prio = 99;
     let pid: libc::c_int = 0;
-    let policy: libc::c_int = libc::SCHED_FIFO;
+    let policy: libc::c_int = libc::SCHED_FIFO; // RR should also be fine
     let params = libc::sched_param {
         sched_priority: prio,
     };
-    let ret;
-    unsafe {
-        ret = libc::sched_setscheduler(pid, policy, &params);
-    }
 
-    if ret != 0 {
-        println!("sched_setscheduler fails");
+    match unsafe { libc::sched_setscheduler(pid, policy, &params) } {
+        0 => (),
+        _ => {
+            let e = errno();
+            let code = e.0;
+            println!("Error {}: {}", code, e);
+            return Err("sched_setscheduler fails".into());
+        }
     }
 
     getscheduler()?;
@@ -331,7 +327,7 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
 
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     mlockall()?;
-    setscheduler()?;
+    setscheduler(99)?;
     setaffinity(1)?;
     block_alarm()?;
 
@@ -346,7 +342,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 
 pub fn run_with_nanosleep_gettime() -> Result<(), Box<dyn Error>> {
     mlockall()?;
-    setscheduler()?;
+    setscheduler(99)?;
     setaffinity(1)?;
     block_alarm()?;
 
@@ -414,6 +410,25 @@ mod test {
     #[test]
     fn test_block_alarm() -> Result<(), &'static str> {
         block_alarm()
+    }
+
+    #[test]
+    fn test_mlockall() -> Result<(), Box<dyn Error>> {
+        mlockall()
+    }
+
+    #[test]
+    fn test_set_latency_target() -> Result<(), Box<dyn Error>> {
+        let _file = set_latency_target();
+        Ok(())
+    }
+
+    #[ignore] // will not run unless we have root permissions
+    #[test]
+    fn test_setscheduler() -> Result<(), Box<dyn Error>> {
+        setscheduler(0)?;
+        setscheduler(99)?;
+        Ok(())
     }
 
     // Sleep tests
