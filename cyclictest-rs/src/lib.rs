@@ -66,7 +66,10 @@ fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
     }
     match unsafe { libc::sched_setaffinity(pid, cpusetsize, pmask) } {
         0 => (),
-        _ => return Err("setaffinity fails".into()),
+        _ => {
+            let code = errno();
+            return Err( format!("setaffinity fails: {}, {}",code, code.0).into())
+        }
     }
     Ok(())
 }
@@ -281,7 +284,7 @@ fn sample_clock_nanosleep_with_gettime(
     wait_time_ns: u32,
 ) -> Result<(), Box<dyn Error>> {
     let sleep_time: u64 = wait_time_ns as u64;
-    let mut diff: i64 = 0;
+    let mut diff: i64;
     let mut accumulator: u64 = 0; //probably not the right value here
     let mut max_diff: i64 = 0;
 
@@ -385,6 +388,7 @@ mod test {
     #[test]
     fn test_setaffinity_fail() -> Result<(), Box<dyn Error>> {
         // TODO This doesn't look nice
+        // TODO Can we also check the error message?
         let cpu = 99; // Will fail unless we have many cpus :)
         match setaffinity(cpu) {
             Ok(_) => Err("This should fail".into()),
