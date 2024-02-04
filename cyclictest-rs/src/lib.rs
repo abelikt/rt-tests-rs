@@ -283,8 +283,8 @@ struct Timespec {
 impl Timespec {
     pub fn diff_ns(begin: Timespec, end: Timespec) -> i64 {
         //! Returns the difference of end - begin in nanoseconds
-
-        let diff = end.nsec - begin.nsec;
+        let diffs = (end.sec - begin.sec) * 1_000_000_000;
+        let diff = end.nsec - begin.nsec + diffs;
         diff
     }
 }
@@ -319,15 +319,10 @@ fn sample_clock_nanosleep_with_gettime(
     let mut max_diff: i64 = 0;
 
     for _s in 0..samples {
-        let start: i64 = clock_gettime().nsec;
+        let start = clock_gettime();
         sleep_clock_nanosleep();
-        let end: i64 = clock_gettime().nsec;
-        diff = end - start;
-
-        if diff < 0 {
-            // hack for now
-            diff += 1_000_000_000;
-        }
+        let end = clock_gettime();
+        diff = Timespec::diff_ns(start, end);
 
         accumulator += diff as u64;
         if diff > max_diff {
@@ -481,16 +476,43 @@ mod test {
 
     #[test]
     fn test_clock_gettime() {
-        let now = clock_gettime();
-        let then = clock_gettime();
-        assert!(then.nsec > now.nsec);
+        let begin = clock_gettime();
+        let end = clock_gettime();
+        assert!(Timespec::diff_ns(begin, end) > 0);
     }
 
     #[test]
-    fn test_diff() {
+    fn test_diff_larger() {
         let begin = Timespec { sec: 0, nsec: 10 };
         let end = Timespec { sec: 0, nsec: 20 };
         assert_eq!(Timespec::diff_ns(begin, end), 10);
+    }
+    #[test]
+    fn test_diff_smaller() {
+        let begin = Timespec { sec: 0, nsec: 20 };
+        let end = Timespec { sec: 0, nsec: 10 };
+        assert_eq!(Timespec::diff_ns(begin, end), -10);
+    }
+    #[test]
+    fn test_diff_1s() {
+        let begin = Timespec { sec: 0, nsec: 10 };
+        let end = Timespec { sec: 1, nsec: 20 };
+        assert_eq!(Timespec::diff_ns(begin, end), 1_000_000_010);
+    }
+    #[test]
+    fn test_diff_smaller_1s() {
+        let begin = Timespec { sec: 0, nsec: 20 };
+        let end = Timespec { sec: 1, nsec: 10 };
+        assert_eq!(Timespec::diff_ns(begin, end), 999_999_990);
+    }
+    #[test]
+    fn test_diff_smaller_s_overflow() {
+        let begin = Timespec {
+            sec: 0,
+            nsec: 999_999_990,
+        };
+        let end = Timespec { sec: 1, nsec: 10 };
+        assert_eq!(Timespec::diff_ns(begin, end), 20);
     }
 
     // Sleep tests
