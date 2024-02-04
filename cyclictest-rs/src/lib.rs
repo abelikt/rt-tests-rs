@@ -32,6 +32,10 @@ observe dma setting
 
     sudo cat /dev/cpu_dma_latency
 
+To-Do
+* Check if we can replace calls with the nix crate https://crates.io/crates/nix
+
+
 */
 
 #[derive(Parser, Debug)]
@@ -47,40 +51,24 @@ struct Args {
     nanosleepgettime: bool,
 }
 
-fn setaffinity() {
+fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
     // https://linux.die.net/man/2/sched_setaffinity
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setaffinity.html
-
-    // -> https://crates.io/crates/nix
-    // https://docs.rs/nix/latest/src/nix/sched.rs.html#181-186
-    // https://doc.rust-lang.org/std/mem/fn.zeroed.html
-
-    let ret;
     let pid = 0;
-    let cpusetsize: libc::size_t = 12;
-
+    let cpusetsize: libc::size_t = libc::CPU_SETSIZE as libc::size_t;
     let mut cpuset: libc::cpu_set_t = unsafe { mem::zeroed() };
-
     unsafe { libc::CPU_ZERO(&mut cpuset) };
-
     let pmask: *mut libc::cpu_set_t = &mut cpuset;
-
-    unsafe { libc::CPU_SET(1, &mut cpuset) };
-
-    let isset: bool;
-    unsafe { isset = libc::CPU_ISSET(1, &cpuset) };
-
-    if !isset {
-        println!("CPU_ISSET fails");
+    unsafe { libc::CPU_SET(usize::try_from(cpu).unwrap(), &mut cpuset) };
+    match unsafe { libc::CPU_ISSET(usize::try_from(cpu).unwrap(), &cpuset) } {
+        true => (),
+        false => return Err("CPU_ISSET fails".into()),
     }
-
-    unsafe {
-        ret = libc::sched_setaffinity(pid, cpusetsize, pmask);
+    match unsafe { libc::sched_setaffinity(pid, cpusetsize, pmask) } {
+        0 => (),
+        _ => return Err("setaffinity fails".into()),
     }
-
-    if ret != 0 {
-        println!("setaffinity fails");
-    }
+    Ok(())
 }
 
 fn getscheduler() {
@@ -333,7 +321,7 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler()?;
-    setaffinity();
+    setaffinity(1)?;
     block_alarm();
 
     let _file = set_latency_target()?;
@@ -348,7 +336,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 pub fn run_with_nanosleep_gettime() -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler()?;
-    setaffinity();
+    setaffinity(1)?;
     block_alarm();
 
     let _file = set_latency_target()?;
@@ -386,8 +374,22 @@ mod test {
     use super::*;
 
     #[test]
-    pub fn test1() {
-        assert_eq!(1, 1);
+    fn test_setaffinity() -> Result<(), Box<dyn Error>> {
+        setaffinity(0)?;
+        setaffinity(1)?;
+        setaffinity(2)?;
+        setaffinity(3)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_setaffinity_fail() -> Result<(), Box<dyn Error>> {
+        // TODO This doesn't look nice
+        let cpu = 99; // Will fail unless we have many cpus :)
+        match setaffinity(cpu) {
+            Ok(_) => Err("This should fail".into()),
+            Err(_) => Ok(()),
+        }
     }
 
     #[test]
