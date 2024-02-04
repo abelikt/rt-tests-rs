@@ -68,3 +68,8 @@ Real-Time tests for Linux:
 OSADL QA monitoring Farm:
 
 * https://www.osadl.org/Continuous-latency-monitoring.qa-farm-monitoring.0.html
+
+More about scheduling
+
+* https://www.kernel.org/doc/html/latest/scheduler/index.html
+* https://www.kernel.org/doc/html/latest/scheduler/sched-rt-group.html

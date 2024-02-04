@@ -48,7 +48,9 @@ Observe real-time prio with:
 Run With:
 
     cargo build && sudo target/debug/cyclictest-rs  --nanosleep
+    cargo build --release && sudo target/release/cyclictest-rs  --sleep
     cargo build --release && sudo target/release/cyclictest-rs  --nanosleep
+    cargo build --release && sudo target/release/cyclictest-rs  --nanosleepgettime
 
 On my test system (10K samples):
 
