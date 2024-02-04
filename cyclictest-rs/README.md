@@ -52,28 +52,63 @@ Run With:
     cargo build --release && sudo target/release/cyclictest-rs  --nanosleep
     cargo build --release && sudo target/release/cyclictest-rs  --nanosleepgettime
 
-On my test system (10K samples):
-
-    $ cargo build --release && sudo target/release/cyclictest-rs --nanosleep
-    Getscheduler 0
-    Getscheduler 1
-    Average Latency 2.343µs Maximal Latency 6.155µs
-    Average Latency 2.322µs Maximal Latency 7.417µs
-    Average Latency 2.328µs Maximal Latency 5.643µs
-    Average Latency 2.317µs Maximal Latency 4.211µs
-    Average Latency 2.343µs Maximal Latency 4.24µs
-    Average Latency 2.344µs Maximal Latency 4.802µs
-    Average Latency 2.351µs Maximal Latency 5.713µs
-    Average Latency 2.393µs Maximal Latency 9.961µs
-    Average Latency 2.389µs Maximal Latency 7.657µs
-    Average Latency 2.417µs Maximal Latency 8.63µs
-
-This is comparable to cyclictests results, but still a bit worse.
-Sometimes there are about 30µs this needs more investigation.
-
 Observe rt prio:
 
     ps  -m -C cyclictest-rs -o pid,pri,rtprio,uid,cputime,cmd
+
+# Some measurements
+
+From my developement system (1K samples per line))
+
+Results are comparable to original cyclictests results, but still a bit worse.
+Sometimes there are samples about 30µs, this needs more investigation.
+
+## Without any real-time settings, simple std::thread::sleep:
+
+    $ cargo build --release && sudo target/release/cyclictest-rs  --sleep
+    ...
+    Average Latency 61.095µs Maximal Latency 129.054µs
+    Average Latency 63.433µs Maximal Latency 92.947µs
+    Average Latency 55.066µs Maximal Latency 91.985µs
+    Average Latency 56.036µs Maximal Latency 68.941µs
+    Average Latency 54.85µs Maximal Latency 67.71µs
+    Average Latency 55.891µs Maximal Latency 89.831µs
+    Average Latency 55.387µs Maximal Latency 67.228µs
+    Average Latency 56.008µs Maximal Latency 64.793µs
+    Average Latency 53.779µs Maximal Latency 65.245µs
+    Average Latency 56.335µs Maximal Latency 81.936µs
+
+
+## Sleeping with clock_nanosleep and having the right settings in place:
+
+    $ cargo build --release && sudo target/release/cyclictest-rs  --nanosleep
+    ...
+    Average Latency 2.797µs Maximal Latency 7.946µs
+    Average Latency 2.739µs Maximal Latency 6.744µs
+    Average Latency 2.75µs Maximal Latency 7.576µs
+    Average Latency 2.835µs Maximal Latency 13.437µs
+    Average Latency 2.772µs Maximal Latency 6.453µs
+    Average Latency 2.783µs Maximal Latency 6.354µs
+    Average Latency 2.757µs Maximal Latency 6.113µs
+    Average Latency 2.704µs Maximal Latency 8.077µs
+    Average Latency 2.713µs Maximal Latency 8.988µs
+    Average Latency 2.62µs Maximal Latency 6.865µs
+
+
+## Sleeping with clock_nanosleep, measuring time with clock_gettime and having the right settings in place:
+
+    $ cargo build --release && sudo target/release/cyclictest-rs  --nanosleepgettime
+    ...
+    Average Latency 2.908 Maximal Latency 10.632
+    Average Latency 2.882 Maximal Latency 8.668
+    Average Latency 2.767 Maximal Latency 6.554
+    Average Latency 2.781 Maximal Latency 9.57
+    Average Latency 2.784 Maximal Latency 9.419
+    Average Latency 2.853 Maximal Latency 7.526
+    Average Latency 2.811 Maximal Latency 8.057
+    Average Latency 2.799 Maximal Latency 7.445
+    Average Latency 2.86 Maximal Latency 7.196
+    Average Latency 2.774 Maximal Latency 7.606
 
 
 # Test Systems
