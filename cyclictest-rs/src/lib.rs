@@ -9,6 +9,8 @@ use std::time::{Duration, Instant};
 use clap::Parser;
 use errno::errno;
 
+mod benchmarks;
+
 /*
 
 libc:
@@ -49,6 +51,9 @@ struct Args {
 
     #[arg(long, default_value_t = false)]
     nanosleepgettime: bool,
+
+    #[arg(long, default_value_t = false)]
+    benchmarks: bool,
 }
 
 pub fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
@@ -321,7 +326,7 @@ fn sample_clock_nanosleep_with_gettime(
 ) -> Result<(), Box<dyn Error>> {
     let sleep_time: u64 = wait_time_ns as u64;
     let mut diff: i64;
-    let mut accumulator: u64 = 0; //probably not the right value here
+    let mut accumulator: u64 = 0; //probably not the right type here
     let mut max_diff: i64 = 0;
 
     for _s in 0..samples {
@@ -403,6 +408,11 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
     if args.nanosleepgettime {
         println!("Testing with clock_nanosleep and clock_gettime");
         run_with_nanosleep_gettime()?;
+    }
+
+    if args.benchmarks {
+        println!("Running some benchmarks");
+        benchmarks::run_benchmarks()?;
     }
 
     Ok(())
