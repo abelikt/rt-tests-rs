@@ -55,6 +55,7 @@ pub fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
     //! Set process affinity to given cpu
     // https://linux.die.net/man/2/sched_setaffinity
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setaffinity.html
+    println!("Setting CPU affinity");
     let pid = 0;
     let cpusetsize: libc::size_t = libc::CPU_SETSIZE as libc::size_t;
     let mut cpuset: libc::cpu_set_t = unsafe { mem::zeroed() };
@@ -102,6 +103,7 @@ pub fn block_alarm() -> Result<(), &'static str> {
 
     //https://docs.rs/libc/0.2.153/libc/fn.sigemptyset.html
 
+    println!("Blocking Unix signals");
     let mut ret;
     let mut sigset: libc::sigset_t = unsafe { mem::zeroed() };
 
@@ -137,6 +139,8 @@ fn mlockall() -> Result<(), Box<dyn Error>> {
     // https://docs.rs/libc/latest/libc/fn.mlockall.html
     // TODO Maybe replace with nix version https://docs.rs/nix/0.27.1/nix/sys/mman/fn.mlockall.html
 
+    println!("Locking memory");
+
     let flags: libc::c_int = libc::MCL_CURRENT | libc::MCL_FUTURE;
     match unsafe { libc::mlockall(flags) } {
         0 => Ok(()),
@@ -152,6 +156,7 @@ fn mlockall() -> Result<(), Box<dyn Error>> {
 
 /* Latency trick, see cyclictest*/
 fn set_latency_target() -> Result<File, Box<dyn Error>> {
+    println!("Disabling power management");
     let filename = String::from("/dev/cpu_dma_latency");
 
     // plain open did not work out
@@ -164,6 +169,7 @@ fn set_latency_target() -> Result<File, Box<dyn Error>> {
     Ok(f)
 }
 
+#[derive(Debug)]
 #[allow(dead_code)]
 enum Policy {
     Other = libc::SCHED_OTHER as isize,
@@ -180,6 +186,7 @@ fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setscheduler.html
 
     getscheduler()?;
+    println!("Setting policy to {:?} and prio to {}", policy, prio);
     let pid: libc::c_int = 0;
     let libcpolicy = policy as libc::c_int;
     let params = libc::sched_param {
@@ -283,9 +290,8 @@ struct Timespec {
 impl Timespec {
     pub fn diff_ns(begin: Timespec, end: Timespec) -> i64 {
         //! Returns the difference of end - begin in nanoseconds
-        let diffs = (end.sec - begin.sec) * 1_000_000_000;
-        let diff = end.nsec - begin.nsec + diffs;
-        diff
+        let diff_s = (end.sec - begin.sec) * 1_000_000_000;
+        end.nsec - begin.nsec + diff_s
     }
 }
 
@@ -340,6 +346,7 @@ fn sample_clock_nanosleep_with_gettime(
 }
 
 pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
+    println!("Starting measurement cycle ...");
     for _i in 0..10 {
         sample_sleep_with_duration(1000, 1_000_000)?;
     }
@@ -352,8 +359,10 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     setaffinity(1)?;
     block_alarm()?;
 
+    // We need to keep the file open to disable power management
     let _file = set_latency_target()?;
 
+    println!("Starting measurement cycle ...");
     for _i in 0..10 {
         sample_clock_nanosleep_with_duration(1000, 1_000_000)?;
     }
@@ -367,8 +376,10 @@ pub fn run_with_nanosleep_gettime() -> Result<(), Box<dyn Error>> {
     setaffinity(1)?;
     block_alarm()?;
 
+    // We need to keep the file open to disable power management
     let _file = set_latency_target()?;
 
+    println!("Starting measurement cycle ...");
     for _i in 0..10 {
         sample_clock_nanosleep_with_gettime(1000, 1_000_000)?;
     }
@@ -380,17 +391,17 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     if args.sleep {
-        println!("simple sleep");
+        println!("Testing with simple sleep");
         run_with_sleep()?;
     }
 
     if args.nanosleep {
-        println!("clock_nanosleep");
+        println!("Testing with clock_nanosleep");
         run_with_nanosleep()?;
     }
 
     if args.nanosleepgettime {
-        println!("clock_nanosleep clock_gettime");
+        println!("Testing with clock_nanosleep and clock_gettime");
         run_with_nanosleep_gettime()?;
     }
 

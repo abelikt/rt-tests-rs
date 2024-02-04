@@ -1,4 +1,4 @@
-use cyclictest_rs;
+//use cyclictest_rs;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
