@@ -2,8 +2,10 @@
 # Real-Time Linux Tests in Rust
 
 The idea behind this project is to provide some real-time tests written in Rust.
+The goal is to provide similar test like the can be found in
+[rt-tests](https://wiki.linuxfoundation.org/realtime/documentation/howto/tools/rt-tests).
 
-So far there is only cyclictest, see cyclictest-rs folder
+So far there is only cyclictest-rs, see cyclictest-rs folder
 [./cyclictest-rs/README.md](./cyclictest-rs/README.md).
 
 The target is not to rewrite rt-tests, I want to find out how a real-time
@@ -61,9 +63,12 @@ Reboot into the rt Kernel.
 
 Real-Time tests for Linux:
 
-* https://git.kernel.org/pub/scm/utils/rt-tests/rt-tests.git/
+* https://wiki.linuxfoundation.org/realtime/start
 * https://wiki.linuxfoundation.org/realtime/documentation/start
+* https://wiki.linuxfoundation.org/realtime/documentation/howto/tools/start
+* https://wiki.linuxfoundation.org/realtime/documentation/howto/tools/rt-tests
 * https://wiki.linuxfoundation.org/realtime/documentation/howto/tools/cyclictest/start
+* https://git.kernel.org/pub/scm/utils/rt-tests/rt-tests.git/
 
 OSADL QA monitoring Farm:
 
