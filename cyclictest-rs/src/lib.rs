@@ -51,7 +51,8 @@ struct Args {
     nanosleepgettime: bool,
 }
 
-fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
+pub fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
+    //! Set process affinity to given cpu
     // https://linux.die.net/man/2/sched_setaffinity
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setaffinity.html
     let pid = 0;
@@ -74,7 +75,8 @@ fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn getscheduler() -> Result<&'static str, Box<dyn Error>> {
+pub fn getscheduler() -> Result<&'static str, Box<dyn Error>> {
+    //! Get current scheduling policy
     // https://linux.die.net/man/2/sched_getscheduler
     let policy = match unsafe { libc::sched_getscheduler(0) } {
         libc::SCHED_OTHER => "SCHED_OTHER",
@@ -86,7 +88,9 @@ fn getscheduler() -> Result<&'static str, Box<dyn Error>> {
     Ok(policy)
 }
 
-fn block_alarm() {
+pub fn block_alarm() -> Result<(), &'static str> {
+    //! Block SIGALRM signal
+
     //sigemptyset(&sigset);
     //sigaddset(&sigset, signum);
     //sigprocmask (SIG_BLOCK, &sigset, NULL);
@@ -107,30 +111,31 @@ fn block_alarm() {
         ret = libc::sigemptyset(&mut sigset);
     }
     if ret != 0 {
-        println!("sigemptyset fails");
+        return Err("sigemptyset fails");
     }
 
     unsafe {
         ret = libc::sigaddset(&mut sigset, libc::SIGALRM);
     }
     if ret != 0 {
-        println!("sigaddset fails");
+        return Err("sigaddset fails");
     }
 
     unsafe {
         ret = libc::sigprocmask(libc::SIG_BLOCK, &sigset, &mut oldsigset);
     }
     if ret != 0 {
-        println!("sigaddset fails");
-    }
+        return Err("sigaddset fails");
+    };
+    Ok(())
 }
 
 fn mlockall() -> Result<(), Box<dyn Error>> {
+    //! Lock current and future memory pages
     // https://linux.die.net/man/3/mlockall
     // mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
 
     let flags: libc::c_int = libc::MCL_CURRENT | libc::MCL_FUTURE;
-
     match unsafe { libc::mlockall(flags) } {
         0 => {}
         -1 => {
@@ -141,7 +146,6 @@ fn mlockall() -> Result<(), Box<dyn Error>> {
         }
         _ => return Err("Mlocall fails strangely".into()),
     }
-
     Ok(())
 }
 
@@ -329,7 +333,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler()?;
     setaffinity(1)?;
-    block_alarm();
+    block_alarm()?;
 
     let _file = set_latency_target()?;
 
@@ -344,7 +348,7 @@ pub fn run_with_nanosleep_gettime() -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler()?;
     setaffinity(1)?;
-    block_alarm();
+    block_alarm()?;
 
     let _file = set_latency_target()?;
 
@@ -406,6 +410,13 @@ mod test {
         assert_eq!(getscheduler().unwrap(), "SCHED_OTHER");
         Ok(())
     }
+
+    #[test]
+    fn test_block_alarm() -> Result<(), &'static str> {
+        block_alarm()
+    }
+
+    // Sleep tests
 
     #[test]
     fn test_sample_sleep_with_duration() -> Result<(), Box<dyn Error>> {
