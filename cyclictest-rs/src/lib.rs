@@ -80,6 +80,7 @@ pub fn getscheduler() -> Result<&'static str, Box<dyn Error>> {
     // https://linux.die.net/man/2/sched_getscheduler
     let policy = match unsafe { libc::sched_getscheduler(0) } {
         libc::SCHED_OTHER => "SCHED_OTHER",
+        libc::SCHED_IDLE => "SCHED_IDLE",
         libc::SCHED_FIFO => "SCHED_FIFO",
         libc::SCHED_RR => "SCHED_RR",
         _ => return Err("Unexpected policy".into()),
@@ -163,7 +164,15 @@ fn set_latency_target() -> Result<File, Box<dyn Error>> {
     Ok(f)
 }
 
-fn setscheduler(prio: i32) -> Result<(), Box<dyn Error>> {
+#[allow(dead_code)]
+enum Policy {
+    Other = libc::SCHED_OTHER as isize,
+    Fifo = libc::SCHED_FIFO as isize,
+    Rr = libc::SCHED_RR as isize,
+    Idle = libc::SCHED_IDLE as isize,
+}
+
+fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
     //! Set our prority, will fail if we request a real time prio and policy
     //! without root rights.
     //
@@ -172,12 +181,12 @@ fn setscheduler(prio: i32) -> Result<(), Box<dyn Error>> {
 
     getscheduler()?;
     let pid: libc::c_int = 0;
-    let policy: libc::c_int = libc::SCHED_FIFO; // RR should also be fine
+    let libcpolicy = policy as libc::c_int;
     let params = libc::sched_param {
         sched_priority: prio,
     };
 
-    match unsafe { libc::sched_setscheduler(pid, policy, &params) } {
+    match unsafe { libc::sched_setscheduler(pid, libcpolicy, &params) } {
         0 => (),
         _ => {
             let e = errno();
@@ -327,7 +336,7 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
 
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     mlockall()?;
-    setscheduler(99)?;
+    setscheduler(99, Policy::Fifo)?;
     setaffinity(1)?;
     block_alarm()?;
 
@@ -342,7 +351,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 
 pub fn run_with_nanosleep_gettime() -> Result<(), Box<dyn Error>> {
     mlockall()?;
-    setscheduler(99)?;
+    setscheduler(99, Policy::Fifo)?;
     setaffinity(1)?;
     block_alarm()?;
 
@@ -423,12 +432,34 @@ mod test {
         Ok(())
     }
 
-    #[ignore] // will not run unless we have root permissions
+    // TODO all scheduler tests fail if they are in the same test
+    //     could be related on how often we call this and into how
+    //     many libraries the tests are compiled.
     #[test]
-    fn test_setscheduler() -> Result<(), Box<dyn Error>> {
-        setscheduler(0)?;
-        setscheduler(99)?;
+    fn test_setscheduler_idle() -> Result<(), Box<dyn Error>> {
+        setscheduler(0, Policy::Idle)?;
         Ok(())
+    }
+    #[test]
+    fn test_setscheduler_other() -> Result<(), Box<dyn Error>> {
+        setscheduler(0, Policy::Other)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_setscheduler_fifo() -> Result<(), Box<dyn Error>> {
+        match setscheduler(99, Policy::Fifo) {
+            Ok(()) => return Err("Should fail".into()),
+            Err(_) => Ok(()),
+        }
+    }
+
+    #[test]
+    fn test_setscheduler_rr() -> Result<(), Box<dyn Error>> {
+        match setscheduler(99, Policy::Rr) {
+            Ok(()) => return Err("Should fail".into()),
+            Err(_) => Ok(()),
+        }
     }
 
     // Sleep tests
