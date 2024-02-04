@@ -275,7 +275,21 @@ fn sample_clock_nanosleep_with_duration(
     Ok(())
 }
 
-fn clock_gettime() -> i64 {
+struct Timespec {
+    sec: i64,
+    nsec: i64,
+}
+
+impl Timespec {
+    pub fn diff_ns(begin: Timespec, end: Timespec) -> i64 {
+        //! Returns the difference of end - begin in nanoseconds
+
+        let diff = end.nsec - begin.nsec;
+        diff
+    }
+}
+
+fn clock_gettime() -> Timespec {
     // https://docs.rs/libc/0.2.153/libc/fn.clock_gettime.html
 
     let mut timespec = libc::timespec {
@@ -287,9 +301,12 @@ fn clock_gettime() -> i64 {
 
     unsafe { ret = libc::clock_gettime(clockid, &mut timespec) }
     if ret != 0 {
-        println!("clock_gettime fails");
+        panic!("clock_gettime fails");
     }
-    timespec.tv_nsec
+    Timespec {
+        sec: timespec.tv_sec,
+        nsec: timespec.tv_nsec,
+    }
 }
 
 fn sample_clock_nanosleep_with_gettime(
@@ -302,9 +319,9 @@ fn sample_clock_nanosleep_with_gettime(
     let mut max_diff: i64 = 0;
 
     for _s in 0..samples {
-        let start: i64 = clock_gettime();
+        let start: i64 = clock_gettime().nsec;
         sleep_clock_nanosleep();
-        let end: i64 = clock_gettime();
+        let end: i64 = clock_gettime().nsec;
         diff = end - start;
 
         if diff < 0 {
@@ -460,6 +477,20 @@ mod test {
             Ok(()) => return Err("Should fail".into()),
             Err(_) => Ok(()),
         }
+    }
+
+    #[test]
+    fn test_clock_gettime() {
+        let now = clock_gettime();
+        let then = clock_gettime();
+        assert!(then.nsec > now.nsec);
+    }
+
+    #[test]
+    fn test_diff() {
+        let begin = Timespec { sec: 0, nsec: 10 };
+        let end = Timespec { sec: 0, nsec: 20 };
+        assert_eq!(Timespec::diff_ns(begin, end), 10);
     }
 
     // Sleep tests
