@@ -68,18 +68,22 @@ fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
         0 => (),
         _ => {
             let code = errno();
-            return Err( format!("setaffinity fails: {}, {}",code, code.0).into())
+            return Err(format!("setaffinity fails: {}, {}", code, code.0).into());
         }
     }
     Ok(())
 }
 
-fn getscheduler() {
-    let ret;
-    unsafe {
-        ret = libc::sched_getscheduler(0);
-    }
-    println!("Getscheduler {}", ret);
+fn getscheduler() -> Result<&'static str, Box<dyn Error>> {
+    // https://linux.die.net/man/2/sched_getscheduler
+    let policy = match unsafe { libc::sched_getscheduler(0) } {
+        libc::SCHED_OTHER => "SCHED_OTHER",
+        libc::SCHED_FIFO => "SCHED_FIFO",
+        libc::SCHED_RR => "SCHED_RR",
+        _ => return Err("Unexpected policy".into()),
+    };
+    println!("Getscheduler reports: {}", policy);
+    Ok(policy)
 }
 
 fn block_alarm() {
@@ -166,7 +170,7 @@ fn setscheduler() -> Result<(), Box<dyn Error>> {
 
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setscheduler.html
 
-    getscheduler();
+    getscheduler()?;
 
     let prio = 99;
     let pid: libc::c_int = 0;
@@ -183,7 +187,7 @@ fn setscheduler() -> Result<(), Box<dyn Error>> {
         println!("sched_setscheduler fails");
     }
 
-    getscheduler();
+    getscheduler()?;
 
     Ok(())
 }
@@ -394,6 +398,13 @@ mod test {
             Ok(_) => Err("This should fail".into()),
             Err(_) => Ok(()),
         }
+    }
+
+    #[test]
+    fn test_sched_getscheduler() -> Result<(), Box<dyn Error>> {
+        // in a non rt context we expect libc::SCHED_OTHER aka 0
+        assert_eq!(getscheduler().unwrap(), "SCHED_OTHER");
+        Ok(())
     }
 
     #[test]
