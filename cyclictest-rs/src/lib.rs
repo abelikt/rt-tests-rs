@@ -3,6 +3,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::mem;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -260,10 +261,11 @@ fn sample_sleep_with_duration(samples: u32, wait_time_ns: u32) -> Result<(), Box
     Ok(())
 }
 
-fn sample_clock_nanosleep_with_duration(param: ThreadParam) {
+fn sample_clock_nanosleep_with_duration(stats: Arc<Mutex<Stats>>, param: ThreadParam) {
     let sleep_time = Duration::from_nanos(param.interval);
     let mut diff: Duration;
     let mut accumulator: Duration = Duration::new(0, 0);
+    let mut max_latency = Duration::new(0, 0);
     let mut max_diff: Duration = Duration::new(0, 0);
     for _s in 0..param.cycles {
         let start = Instant::now();
@@ -274,9 +276,11 @@ fn sample_clock_nanosleep_with_duration(param: ThreadParam) {
         if diff > max_diff {
             max_diff = diff;
         }
+        let mut stat = stats.lock().unwrap();
+        max_latency = max_diff - sleep_time;
+        stat.threads[param.thread_num as usize].max = max_latency.as_nanos() as u64;
     }
     let average_latency = accumulator / param.cycles - sleep_time;
-    let max_latency = max_diff - sleep_time;
     println!(
         "T: {} Average Latency {:?} Maximal Latency {:?}",
         param.thread_num, average_latency, max_latency
@@ -360,6 +364,25 @@ struct ThreadParam {
     cycles: u32,
 }
 
+#[derive(Clone, Copy)]
+struct ThreadStats {
+    //hist : [u32; 20],
+    //average :u64,
+    max: u64,
+    //min:u64
+}
+
+struct Stats {
+    threads: [ThreadStats; 10],
+}
+
+impl Stats {
+    fn new() -> Stats {
+        Stats {
+            threads: [ThreadStats { max: 0 }; 10],
+        }
+    }
+}
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
@@ -369,19 +392,27 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     // We need to keep the file open to disable power management
     let _file = set_latency_target()?;
     let mut handles = vec![];
-
+    let stats_data = Stats::new();
+    let stats = Arc::new(Mutex::new(stats_data));
     println!("Starting measurement cycle ...");
     for thread in 0..10 {
+        let stats = Arc::clone(&stats);
         let param = ThreadParam {
             thread_num: thread,
             interval: 1_000_000,
             cycles: 1000,
         };
-        let handle = thread::spawn(move || sample_clock_nanosleep_with_duration(param));
+        let handle = thread::spawn(move || sample_clock_nanosleep_with_duration(stats, param));
         handles.push(handle);
     }
     for handle in handles {
         handle.join().unwrap()
+    }
+
+    // Stats was moved to the Mutex, we just need to access it
+    let final_stats = stats.lock().unwrap();
+    for i in 0..10 {
+        println!("T{} Max was {}", i, final_stats.threads[i].max);
     }
     Ok(())
 }
