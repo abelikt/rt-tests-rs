@@ -238,6 +238,8 @@ fn sleep_clock_nanosleep() {
 }
 
 fn sample_sleep_with_duration(samples: u32, wait_time_ns: u32) -> Result<(), Box<dyn Error>> {
+    //! Messure latency of sleep with time::Duration
+
     let sleep_time = Duration::from_nanos(wait_time_ns.into());
     let mut diff: Duration;
     let mut accumulator: Duration = Duration::new(0, 0);
@@ -262,29 +264,31 @@ fn sample_sleep_with_duration(samples: u32, wait_time_ns: u32) -> Result<(), Box
 }
 
 fn sample_clock_nanosleep_with_duration(stats: Arc<Mutex<Stats>>, param: ThreadParam) {
+    //! Messure latency of clock_nanosleep with time::Duration
+
     let sleep_time = Duration::from_nanos(param.interval);
-    let mut diff: Duration;
+    let mut latency: Duration;
     let mut accumulator: Duration = Duration::new(0, 0);
     let mut max_latency = Duration::new(0, 0);
-    let mut max_diff: Duration = Duration::new(0, 0);
+    let mut min_latency = Duration::MAX;
     for _s in 0..param.cycles {
         let start = Instant::now();
         sleep_clock_nanosleep();
         let end = Instant::now();
-        diff = end - start;
-        accumulator += diff;
-        if diff > max_diff {
-            max_diff = diff;
+        latency = end - start - sleep_time;
+        accumulator += latency;
+        if latency > max_latency {
+            max_latency = latency;
+        }
+        if latency < min_latency {
+            min_latency = latency;
         }
         let mut stat = stats.lock().unwrap();
-        max_latency = max_diff - sleep_time;
         stat.threads[param.thread_num as usize].max = max_latency.as_nanos() as u64;
+        stat.threads[param.thread_num as usize].min = min_latency.as_nanos() as u64;
+        stat.threads[param.thread_num as usize].average =
+            (accumulator.as_nanos() as u64) / (param.cycles as u64)
     }
-    let average_latency = accumulator / param.cycles - sleep_time;
-    println!(
-        "T: {} Average Latency {:?} Maximal Latency {:?}",
-        param.thread_num, average_latency, max_latency
-    );
 }
 
 struct Timespec {
@@ -324,6 +328,8 @@ fn sample_clock_nanosleep_with_gettime(
     samples: u32,
     wait_time_ns: u32,
 ) -> Result<(), Box<dyn Error>> {
+    //! Messure latency of sleep with time::Duration
+
     let sleep_time: u64 = wait_time_ns as u64;
     let mut diff: i64;
     let mut accumulator: u64 = 0; //probably not the right type here
@@ -367,9 +373,9 @@ struct ThreadParam {
 #[derive(Clone, Copy)]
 struct ThreadStats {
     //hist : [u32; 20],
-    //average :u64,
+    average: u64,
     max: u64,
-    //min:u64
+    min: u64,
 }
 
 struct Stats {
@@ -379,7 +385,11 @@ struct Stats {
 impl Stats {
     fn new() -> Stats {
         Stats {
-            threads: [ThreadStats { max: 0 }; 10],
+            threads: [ThreadStats {
+                max: 0,
+                min: u64::MAX,
+                average: u64::MAX,
+            }; 10],
         }
     }
 }
@@ -412,7 +422,13 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     // Stats was moved to the Mutex, we just need to access it
     let final_stats = stats.lock().unwrap();
     for i in 0..10 {
-        println!("T{} Max was {}", i, final_stats.threads[i].max);
+        println!(
+            "T{} Min {} Avg {} Max {}",
+            i,
+            final_stats.threads[i].min,
+            final_stats.threads[i].average,
+            final_stats.threads[i].max
+        );
     }
     Ok(())
 }
