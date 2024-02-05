@@ -260,15 +260,12 @@ fn sample_sleep_with_duration(samples: u32, wait_time_ns: u32) -> Result<(), Box
     Ok(())
 }
 
-fn sample_clock_nanosleep_with_duration(
-    samples: u32,
-    wait_time_ns: u32,
-) -> Result<(), Box<dyn Error>> {
-    let sleep_time = Duration::from_nanos(wait_time_ns.into());
+fn sample_clock_nanosleep_with_duration(param: ThreadParam) {
+    let sleep_time = Duration::from_nanos(param.interval);
     let mut diff: Duration;
     let mut accumulator: Duration = Duration::new(0, 0);
     let mut max_diff: Duration = Duration::new(0, 0);
-    for _s in 0..samples {
+    for _s in 0..param.cycles {
         let start = Instant::now();
         sleep_clock_nanosleep();
         let end = Instant::now();
@@ -278,13 +275,12 @@ fn sample_clock_nanosleep_with_duration(
             max_diff = diff;
         }
     }
-    let average_latency = accumulator / samples - sleep_time;
+    let average_latency = accumulator / param.cycles - sleep_time;
     let max_latency = max_diff - sleep_time;
     println!(
-        "Average Latency {:?} Maximal Latency {:?}",
-        average_latency, max_latency
+        "T: {} Average Latency {:?} Maximal Latency {:?}",
+        param.thread_num, average_latency, max_latency
     );
-    Ok(())
 }
 
 struct Timespec {
@@ -358,6 +354,12 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+struct ThreadParam {
+    thread_num: u32,
+    interval: u64,
+    cycles: u32,
+}
+
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
@@ -366,12 +368,21 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 
     // We need to keep the file open to disable power management
     let _file = set_latency_target()?;
+    let mut handles = vec![];
 
     println!("Starting measurement cycle ...");
-    for _i in 0..10 {
-        sample_clock_nanosleep_with_duration(1000, 1_000_000)?;
+    for thread in 0..10 {
+        let param = ThreadParam {
+            thread_num: thread,
+            interval: 1_000_000,
+            cycles: 1000,
+        };
+        let handle = thread::spawn(move || sample_clock_nanosleep_with_duration(param));
+        handles.push(handle);
     }
-
+    for handle in handles {
+        handle.join().unwrap()
+    }
     Ok(())
 }
 
@@ -545,8 +556,12 @@ mod test {
     }
 
     #[test]
-    fn test_sample_clock_nanosleep_with_duration() -> Result<(), Box<dyn Error>> {
-        sample_clock_nanosleep_with_duration(1, 1)?;
-        Ok(())
+    fn test_sample_clock_nanosleep_with_duration() {
+        let param = ThreadParam {
+            thread_num: 0,
+            interval: 1_000_000,
+            cycles: 1000,
+        };
+        sample_clock_nanosleep_with_duration(param);
     }
 }
