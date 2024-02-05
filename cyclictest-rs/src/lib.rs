@@ -593,6 +593,8 @@ mod test {
             interval: 1_000_000,
             cycles: 1000,
         };
-        sample_clock_nanosleep_with_duration(param);
+        let stats_data = Stats::new();
+        let stats = Arc::new(Mutex::new(stats_data));
+        sample_clock_nanosleep_with_duration(stats, param);
     }
 }
