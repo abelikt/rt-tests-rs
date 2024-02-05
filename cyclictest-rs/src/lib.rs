@@ -423,11 +423,11 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     let final_stats = stats.lock().unwrap();
     for i in 0..10 {
         println!(
-            "T{} Min {} Avg {} Max {}",
+            "T{} µs: Min {:6.1}  Avg {:6.1}  Max {:6.1}",
             i,
-            final_stats.threads[i].min,
-            final_stats.threads[i].average,
-            final_stats.threads[i].max
+            final_stats.threads[i].min as f64 / 1000f64,
+            final_stats.threads[i].average as f64 / 1000f64,
+            final_stats.threads[i].max as f64 / 1000f64
         );
     }
     Ok(())
