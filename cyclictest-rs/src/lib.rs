@@ -364,15 +364,13 @@ fn sample_clock_nanosleep_with_gettime(
     Ok(())
 }
 
-pub fn run_with_sleep(_hist_size: usize) -> Result<(), Box<dyn Error>> {
+pub fn run_with_sleep(num_threads: usize, _hist_size: usize) -> Result<(), Box<dyn Error>> {
     println!("Starting measurement cycle ...");
     for _i in 0..num_threads {
         sample_sleep_with_duration(1000, 1_000_000)?;
     }
     Ok(())
 }
-
-const num_threads: usize = 12;
 
 struct ThreadParam {
     thread_num: u32,
@@ -411,14 +409,14 @@ struct Stats {
 }
 
 impl Stats {
-    fn new(hist_size: usize) -> Stats {
+    fn new(num_threads: usize, hist_size: usize) -> Stats {
         Stats {
-            threads: vec![ThreadStats::new(hist_size); 12],
+            threads: vec![ThreadStats::new(hist_size); num_threads],
         }
     }
 }
 
-pub fn run_with_nanosleep(hist_size: usize) -> Result<(), Box<dyn Error>> {
+pub fn run_with_nanosleep(num_threads: usize, hist_size: usize) -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
     setaffinity(1)?;
@@ -427,7 +425,7 @@ pub fn run_with_nanosleep(hist_size: usize) -> Result<(), Box<dyn Error>> {
     // We need to keep the file open to disable power management
     let _file = set_latency_target()?;
     let mut handles = vec![];
-    let stats_data = Stats::new(hist_size);
+    let stats_data = Stats::new(num_threads, hist_size);
     let stats = Arc::new(Mutex::new(stats_data));
     println!("Starting measurement cycle ...");
     for thread in 0..num_threads {
@@ -437,7 +435,7 @@ pub fn run_with_nanosleep(hist_size: usize) -> Result<(), Box<dyn Error>> {
             interval: 1_000_000,
             cycles: 1000,
             sleep_fn: sleep_clock_nanosleep,
-            hist_size: hist_size,
+            hist_size,
         };
         let handle = thread::spawn(move || sample_clock_nanosleep_with_duration(stats, param));
         handles.push(handle);
@@ -454,7 +452,7 @@ pub fn run_with_nanosleep(hist_size: usize) -> Result<(), Box<dyn Error>> {
         for i in 0..num_threads {
             print!("{:5} ", final_stats.threads[i].hist[h]);
         }
-        println!("");
+        println!();
     }
     print!("O  ");
     for i in 0..num_threads {
@@ -474,7 +472,10 @@ pub fn run_with_nanosleep(hist_size: usize) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_with_nanosleep_gettime(_hist_size: usize) -> Result<(), Box<dyn Error>> {
+pub fn run_with_nanosleep_gettime(
+    num_threads: usize,
+    _hist_size: usize,
+) -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
     setaffinity(1)?;
@@ -496,19 +497,21 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
 
     let hist_size: usize = 15;
 
+    let num_threads: usize = 12;
+
     if args.sleep {
         println!("Testing with simple sleep");
-        run_with_sleep(hist_size)?;
+        run_with_sleep(num_threads, hist_size)?;
     }
 
     if args.nanosleep {
         println!("Testing with clock_nanosleep");
-        run_with_nanosleep(hist_size)?;
+        run_with_nanosleep(num_threads, hist_size)?;
     }
 
     if args.nanosleepgettime {
         println!("Testing with clock_nanosleep and clock_gettime");
-        run_with_nanosleep_gettime(hist_size)?;
+        run_with_nanosleep_gettime(num_threads, hist_size)?;
     }
 
     if args.benchmarks {
