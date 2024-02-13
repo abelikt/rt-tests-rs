@@ -289,7 +289,14 @@ fn sample_clock_nanosleep_with_duration(stats: Arc<Mutex<Stats>>, param: ThreadP
         stat.threads[param.thread_num as usize].max = max_latency.as_nanos() as u64;
         stat.threads[param.thread_num as usize].min = min_latency.as_nanos() as u64;
         stat.threads[param.thread_num as usize].average =
-            (accumulator.as_nanos() as u64) / (param.cycles as u64)
+            (accumulator.as_nanos() as u64) / (param.cycles as u64);
+        let latency_us = latency.as_micros();
+        if latency_us < hist_size.try_into().unwrap() {
+            stat.threads[param.thread_num as usize].hist[latency_us as usize] += 1;
+        }
+        else {
+            stat.threads[param.thread_num as usize].overflows +=1;
+        }
     }
 }
 
@@ -366,6 +373,8 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+const hist_size: usize = 15;
+
 struct ThreadParam {
     thread_num: u32,
     interval: u32,
@@ -375,7 +384,8 @@ struct ThreadParam {
 
 #[derive(Clone, Copy)]
 struct ThreadStats {
-    //hist : [u32; 20],
+    hist : [u32; hist_size],
+    overflows : u32,
     average: u64,
     max: u64,
     min: u64,
@@ -392,6 +402,8 @@ impl Stats {
                 max: 0,
                 min: u64::MAX,
                 average: u64::MAX,
+                hist: [0; hist_size],
+                overflows: 0,
             }; 10],
         }
     }
@@ -434,6 +446,13 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
             final_stats.threads[i].average as f64 / 1000f64,
             final_stats.threads[i].max as f64 / 1000f64
         );
+    }
+    for h in 0..hist_size {
+            print!("h {:2} ", h);
+        for i in 0..10 {
+            print!("{:5} ", final_stats.threads[i].hist[h]);
+        }
+        println!("");
     }
     Ok(())
 }
