@@ -214,14 +214,14 @@ fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn sleep_clock_nanosleep() {
+fn sleep_clock_nanosleep(sleep_ns : u32) {
     //let clockid : libc::clockid_t = libc::CLOCK_REALTIME;
     let clockid: libc::clockid_t = libc::CLOCK_MONOTONIC;
 
     let flags: libc::c_int = libc::CLOCK_REALTIME; // 1: libc::TIMER_ABSTIME
     let request = libc::timespec {
         tv_sec: 0,
-        tv_nsec: 1_000_000,
+        tv_nsec: sleep_ns as i64,
     };
     let mut remain = libc::timespec {
         tv_sec: 0,
@@ -266,14 +266,16 @@ fn sample_sleep_with_duration(samples: u32, wait_time_ns: u32) -> Result<(), Box
 fn sample_clock_nanosleep_with_duration(stats: Arc<Mutex<Stats>>, param: ThreadParam) {
     //! Messure latency of clock_nanosleep with time::Duration
 
-    let sleep_time = Duration::from_nanos(param.interval);
+    let sleep_time = Duration::from_nanos(param.interval as u64);
     let mut latency: Duration;
     let mut accumulator: Duration = Duration::new(0, 0);
     let mut max_latency = Duration::new(0, 0);
     let mut min_latency = Duration::MAX;
     for _s in 0..param.cycles {
+        //TODO also check absolute time
         let start = Instant::now();
-        sleep_clock_nanosleep();
+        //sleep_clock_nanosleep(1_000_000);
+        (param.sleep_fn)(param.interval);
         let end = Instant::now();
         latency = end - start - sleep_time;
         accumulator += latency;
@@ -337,7 +339,7 @@ fn sample_clock_nanosleep_with_gettime(
 
     for _s in 0..samples {
         let start = clock_gettime();
-        sleep_clock_nanosleep();
+        sleep_clock_nanosleep(1_000_000);
         let end = clock_gettime();
         diff = Timespec::diff_ns(start, end);
 
@@ -366,8 +368,9 @@ pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
 
 struct ThreadParam {
     thread_num: u32,
-    interval: u64,
+    interval: u32,
     cycles: u32,
+    sleep_fn : fn(u32),
 }
 
 #[derive(Clone, Copy)]
@@ -393,6 +396,7 @@ impl Stats {
         }
     }
 }
+
 pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
@@ -411,6 +415,7 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
             thread_num: thread,
             interval: 1_000_000,
             cycles: 1000,
+            sleep_fn: sleep_clock_nanosleep
         };
         let handle = thread::spawn(move || sample_clock_nanosleep_with_duration(stats, param));
         handles.push(handle);
@@ -608,6 +613,7 @@ mod test {
             thread_num: 0,
             interval: 1_000_000,
             cycles: 1000,
+            sleep_fn : sleep_clock_nanosleep
         };
         let stats_data = Stats::new();
         let stats = Arc::new(Mutex::new(stats_data));
