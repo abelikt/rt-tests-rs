@@ -332,36 +332,42 @@ fn clock_gettime() -> Timespec {
     }
 }
 
-fn sample_clock_nanosleep_with_gettime(
-    samples: u32,
-    wait_time_ns: u32,
-) -> Result<(), Box<dyn Error>> {
+fn sample_clock_nanosleep_with_gettime(stats: Arc<Mutex<Stats>>, param: ThreadParam) {
     //! Messure latency of sleep with time::Duration
 
-    let sleep_time: u64 = wait_time_ns as u64;
-    let mut diff: i64;
+    let sleep_time: u64 = param.interval as u64;
+    let mut latency: u64;
     let mut accumulator: u64 = 0; //probably not the right type here
-    let mut max_diff: i64 = 0;
+    let mut max_latency: u64 = 0;
+    let mut min_latency: u64 = u64::MAX;
 
-    for _s in 0..samples {
+    for _s in 0..param.cycles {
+        //TODO also check absolute time
         let start = clock_gettime();
-        sleep_clock_nanosleep(1_000_000);
+        //sleep_clock_nanosleep(1_000_000);
+        (param.sleep_fn)(param.interval);
         let end = clock_gettime();
-        diff = Timespec::diff_ns(start, end);
+        latency = Timespec::diff_ns(start, end) as u64; // - sleep_time;
+        latency -= sleep_time;
 
-        accumulator += diff as u64;
-        if diff > max_diff {
-            max_diff = diff;
+        accumulator += latency as u64;
+        if latency > max_latency {
+            max_latency = latency;
+        }
+        if latency < min_latency {
+            min_latency = latency;
+        }
+        let mut stat = stats.lock().unwrap();
+        stat.threads[param.thread_num as usize].max = max_latency;
+        stat.threads[param.thread_num as usize].min = min_latency;
+        stat.threads[param.thread_num as usize].average = (accumulator) / (param.cycles as u64);
+        let latency_us = latency / 1000u64;
+        if latency_us < param.hist_size.try_into().unwrap() {
+            stat.threads[param.thread_num as usize].hist[latency_us as usize] += 1;
+        } else {
+            stat.threads[param.thread_num as usize].overflows += 1;
         }
     }
-    let average_latency: u64 = accumulator / (samples as u64) - sleep_time;
-    let max_latency: u64 = max_diff as u64 - sleep_time;
-    println!(
-        "Average Latency {:?} Maximal Latency {:?}",
-        average_latency as f64 / 1000f64,
-        max_latency as f64 / 1000f64
-    );
-    Ok(())
 }
 
 pub fn run_with_sleep(num_threads: usize, _hist_size: usize) -> Result<(), Box<dyn Error>> {
@@ -416,7 +422,11 @@ impl Stats {
     }
 }
 
-pub fn run_with_nanosleep(num_threads: usize, hist_size: usize) -> Result<(), Box<dyn Error>> {
+pub fn run_measurement(
+    measurement: MeasurementType,
+    num_threads: usize,
+    hist_size: usize,
+) -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
     setaffinity(1)?;
@@ -427,6 +437,10 @@ pub fn run_with_nanosleep(num_threads: usize, hist_size: usize) -> Result<(), Bo
     let mut handles = vec![];
     let stats_data = Stats::new(num_threads, hist_size);
     let stats = Arc::new(Mutex::new(stats_data));
+    let measurement_fn = match measurement {
+        MeasurementType::ClockNanosleep => sample_clock_nanosleep_with_duration,
+        MeasurementType::ClockNanosleepGettime => sample_clock_nanosleep_with_gettime,
+    };
     println!("Starting measurement cycle ...");
     for thread in 0..num_threads {
         let stats = Arc::clone(&stats);
@@ -435,9 +449,11 @@ pub fn run_with_nanosleep(num_threads: usize, hist_size: usize) -> Result<(), Bo
             interval: 1_000_000,
             cycles: 10_000,
             sleep_fn: sleep_clock_nanosleep,
+            //sleep_fn : thread::sleep,
             hist_size,
         };
-        let handle = thread::spawn(move || sample_clock_nanosleep_with_duration(stats, param));
+        let handle = thread::spawn(move || measurement_fn(stats, param));
+
         handles.push(handle);
     }
     for handle in handles {
@@ -472,24 +488,9 @@ pub fn run_with_nanosleep(num_threads: usize, hist_size: usize) -> Result<(), Bo
     Ok(())
 }
 
-pub fn run_with_nanosleep_gettime(
-    num_threads: usize,
-    _hist_size: usize,
-) -> Result<(), Box<dyn Error>> {
-    mlockall()?;
-    setscheduler(99, Policy::Fifo)?;
-    setaffinity(1)?;
-    block_alarm()?;
-
-    // We need to keep the file open to disable power management
-    let _file = set_latency_target()?;
-
-    println!("Starting measurement cycle ...");
-    for _i in 0..num_threads {
-        sample_clock_nanosleep_with_gettime(1000, 1_000_000)?;
-    }
-
-    Ok(())
+pub enum MeasurementType {
+    ClockNanosleep,
+    ClockNanosleepGettime,
 }
 
 pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
@@ -506,12 +507,16 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
 
     if args.nanosleep {
         println!("Testing with clock_nanosleep");
-        run_with_nanosleep(num_threads, hist_size)?;
+        run_measurement(MeasurementType::ClockNanosleep, num_threads, hist_size)?;
     }
 
     if args.nanosleepgettime {
         println!("Testing with clock_nanosleep and clock_gettime");
-        run_with_nanosleep_gettime(num_threads, hist_size)?;
+        run_measurement(
+            MeasurementType::ClockNanosleepGettime,
+            num_threads,
+            hist_size,
+        )?;
     }
 
     if args.benchmarks {
@@ -657,7 +662,7 @@ mod test {
             sleep_fn: sleep_clock_nanosleep,
             hist_size: 12,
         };
-        let stats_data = Stats::new(12,20);
+        let stats_data = Stats::new(12, 20);
         let stats = Arc::new(Mutex::new(stats_data));
         sample_clock_nanosleep_with_duration(stats, param);
     }
