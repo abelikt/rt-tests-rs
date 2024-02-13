@@ -438,21 +438,22 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
 
     // Stats was moved to the Mutex, we just need to access it
     let final_stats = stats.lock().unwrap();
-    for i in 0..10 {
-        println!(
-            "T{} µs: Min {:6.1}  Avg {:6.1}  Max {:6.1}",
-            i,
-            final_stats.threads[i].min as f64 / 1000f64,
-            final_stats.threads[i].average as f64 / 1000f64,
-            final_stats.threads[i].max as f64 / 1000f64
-        );
-    }
     for h in 0..hist_size {
             print!("h {:2} ", h);
         for i in 0..10 {
             print!("{:5} ", final_stats.threads[i].hist[h]);
         }
         println!("");
+    }
+    for i in 0..10 {
+        println!(
+            "T{} µs: Min {:6.1}  Avg {:6.1}  Max {:6.1}  Overflows {:6}",
+            i,
+            final_stats.threads[i].min as f64 / 1000f64,
+            final_stats.threads[i].average as f64 / 1000f64,
+            final_stats.threads[i].max as f64 / 1000f64,
+            final_stats.threads[i].overflows
+        );
     }
     Ok(())
 }
