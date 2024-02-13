@@ -433,7 +433,7 @@ pub fn run_with_nanosleep(num_threads: usize, hist_size: usize) -> Result<(), Bo
         let param = ThreadParam {
             thread_num: thread as u32,
             interval: 1_000_000,
-            cycles: 1000,
+            cycles: 10_000,
             sleep_fn: sleep_clock_nanosleep,
             hist_size,
         };
@@ -454,7 +454,7 @@ pub fn run_with_nanosleep(num_threads: usize, hist_size: usize) -> Result<(), Bo
         }
         println!();
     }
-    print!("O  ");
+    print!("Ov ");
     for i in 0..num_threads {
         print!("{:5} ", final_stats.threads[i].overflows);
     }
