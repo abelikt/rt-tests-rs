@@ -214,7 +214,7 @@ fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn sleep_clock_nanosleep(sleep_ns : u32) {
+fn sleep_clock_nanosleep(sleep_ns: u32) {
     //let clockid : libc::clockid_t = libc::CLOCK_REALTIME;
     let clockid: libc::clockid_t = libc::CLOCK_MONOTONIC;
 
@@ -293,9 +293,8 @@ fn sample_clock_nanosleep_with_duration(stats: Arc<Mutex<Stats>>, param: ThreadP
         let latency_us = latency.as_micros();
         if latency_us < param.hist_size.try_into().unwrap() {
             stat.threads[param.thread_num as usize].hist[latency_us as usize] += 1;
-        }
-        else {
-            stat.threads[param.thread_num as usize].overflows +=1;
+        } else {
+            stat.threads[param.thread_num as usize].overflows += 1;
         }
     }
 }
@@ -365,7 +364,7 @@ fn sample_clock_nanosleep_with_gettime(
     Ok(())
 }
 
-pub fn run_with_sleep(_hist_size:usize) -> Result<(), Box<dyn Error>> {
+pub fn run_with_sleep(_hist_size: usize) -> Result<(), Box<dyn Error>> {
     println!("Starting measurement cycle ...");
     for _i in 0..num_threads {
         sample_sleep_with_duration(1000, 1_000_000)?;
@@ -379,28 +378,28 @@ struct ThreadParam {
     thread_num: u32,
     interval: u32,
     cycles: u32,
-    sleep_fn : fn(u32),
-    hist_size:usize,
+    sleep_fn: fn(u32),
+    hist_size: usize,
 }
 
 #[derive(Clone)]
 struct ThreadStats {
     //hist : [u32; hist_size],
-    hist : Vec<u32>,
-    overflows : u32,
+    hist: Vec<u32>,
+    overflows: u32,
     average: u64,
     max: u64,
     min: u64,
 }
 
 impl ThreadStats {
-    fn new(hist_size:usize) -> ThreadStats {
-        ThreadStats{
+    fn new(hist_size: usize) -> ThreadStats {
+        ThreadStats {
             max: 0,
             min: u64::MAX,
             average: u64::MAX,
             //hist: [0; hist_size],
-            hist : vec![0; hist_size],
+            hist: vec![0; hist_size],
             overflows: 0,
         }
     }
@@ -408,18 +407,18 @@ impl ThreadStats {
 
 struct Stats {
     //threads: [ThreadStats; num_threads],
-    threads: Vec<ThreadStats>
+    threads: Vec<ThreadStats>,
 }
 
 impl Stats {
-    fn new(hist_size:usize) -> Stats {
-        Stats{
-            threads:vec![ThreadStats::new(hist_size); 12]
+    fn new(hist_size: usize) -> Stats {
+        Stats {
+            threads: vec![ThreadStats::new(hist_size); 12],
         }
     }
 }
 
-pub fn run_with_nanosleep(hist_size:usize) -> Result<(), Box<dyn Error>> {
+pub fn run_with_nanosleep(hist_size: usize) -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
     setaffinity(1)?;
@@ -438,7 +437,7 @@ pub fn run_with_nanosleep(hist_size:usize) -> Result<(), Box<dyn Error>> {
             interval: 1_000_000,
             cycles: 1000,
             sleep_fn: sleep_clock_nanosleep,
-            hist_size: hist_size
+            hist_size: hist_size,
         };
         let handle = thread::spawn(move || sample_clock_nanosleep_with_duration(stats, param));
         handles.push(handle);
@@ -451,7 +450,7 @@ pub fn run_with_nanosleep(hist_size:usize) -> Result<(), Box<dyn Error>> {
     let final_stats = stats.lock().unwrap();
     println!("Histogram");
     for h in 0..hist_size {
-            print!("{:2} ", h);
+        print!("{:2} ", h);
         for i in 0..num_threads {
             print!("{:5} ", final_stats.threads[i].hist[h]);
         }
@@ -459,8 +458,8 @@ pub fn run_with_nanosleep(hist_size:usize) -> Result<(), Box<dyn Error>> {
     }
     print!("O  ");
     for i in 0..num_threads {
-            print!("{:5} ", final_stats.threads[i].overflows);
-        }
+        print!("{:5} ", final_stats.threads[i].overflows);
+    }
     println!("\nStats");
     for i in 0..num_threads {
         println!(
@@ -475,7 +474,7 @@ pub fn run_with_nanosleep(hist_size:usize) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_with_nanosleep_gettime(_hist_size:usize) -> Result<(), Box<dyn Error>> {
+pub fn run_with_nanosleep_gettime(_hist_size: usize) -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
     setaffinity(1)?;
@@ -652,8 +651,8 @@ mod test {
             thread_num: 0,
             interval: 1_000_000,
             cycles: 1000,
-            sleep_fn : sleep_clock_nanosleep,
-            hist_size:12,
+            sleep_fn: sleep_clock_nanosleep,
+            hist_size: 12,
         };
         let stats_data = Stats::new(12);
         let stats = Arc::new(Mutex::new(stats_data));
