@@ -367,13 +367,14 @@ fn sample_clock_nanosleep_with_gettime(
 
 pub fn run_with_sleep() -> Result<(), Box<dyn Error>> {
     println!("Starting measurement cycle ...");
-    for _i in 0..10 {
+    for _i in 0..num_threads {
         sample_sleep_with_duration(1000, 1_000_000)?;
     }
     Ok(())
 }
 
 const hist_size: usize = 15;
+const num_threads: usize = 12;
 
 struct ThreadParam {
     thread_num: u32,
@@ -392,7 +393,7 @@ struct ThreadStats {
 }
 
 struct Stats {
-    threads: [ThreadStats; 10],
+    threads: [ThreadStats; num_threads],
 }
 
 impl Stats {
@@ -404,7 +405,7 @@ impl Stats {
                 average: u64::MAX,
                 hist: [0; hist_size],
                 overflows: 0,
-            }; 10],
+            }; num_threads],
         }
     }
 }
@@ -421,10 +422,10 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     let stats_data = Stats::new();
     let stats = Arc::new(Mutex::new(stats_data));
     println!("Starting measurement cycle ...");
-    for thread in 0..10 {
+    for thread in 0..num_threads {
         let stats = Arc::clone(&stats);
         let param = ThreadParam {
-            thread_num: thread,
+            thread_num: thread as u32,
             interval: 1_000_000,
             cycles: 1000,
             sleep_fn: sleep_clock_nanosleep
@@ -441,17 +442,17 @@ pub fn run_with_nanosleep() -> Result<(), Box<dyn Error>> {
     println!("Histogram");
     for h in 0..hist_size {
             print!("{:2} ", h);
-        for i in 0..10 {
+        for i in 0..num_threads {
             print!("{:5} ", final_stats.threads[i].hist[h]);
         }
         println!("");
     }
     print!("O  ");
-    for i in 0..10 {
+    for i in 0..num_threads {
             print!("{:5} ", final_stats.threads[i].overflows);
         }
     println!("\nStats");
-    for i in 0..10 {
+    for i in 0..num_threads {
         println!(
             "T{} µs: Min {:6.1}  Avg {:6.1}  Max {:6.1}  Overflows {:6}",
             i,
@@ -474,7 +475,7 @@ pub fn run_with_nanosleep_gettime() -> Result<(), Box<dyn Error>> {
     let _file = set_latency_target()?;
 
     println!("Starting measurement cycle ...");
-    for _i in 0..10 {
+    for _i in 0..num_threads {
         sample_clock_nanosleep_with_gettime(1000, 1_000_000)?;
     }
 
