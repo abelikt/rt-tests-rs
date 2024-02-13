@@ -657,7 +657,7 @@ mod test {
             sleep_fn: sleep_clock_nanosleep,
             hist_size: 12,
         };
-        let stats_data = Stats::new(12);
+        let stats_data = Stats::new(12,20);
         let stats = Arc::new(Mutex::new(stats_data));
         sample_clock_nanosleep_with_duration(stats, param);
     }
