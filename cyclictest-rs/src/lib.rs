@@ -426,6 +426,7 @@ pub fn run_measurement(
     measurement: MeasurementType,
     num_threads: usize,
     hist_size: usize,
+    distance : u32
 ) -> Result<(), Box<dyn Error>> {
     mlockall()?;
     setscheduler(99, Policy::Fifo)?;
@@ -446,7 +447,7 @@ pub fn run_measurement(
         let stats = Arc::clone(&stats);
         let param = ThreadParam {
             thread_num: thread as u32,
-            interval: 1_000_000,
+            interval: 1_000_000 + num_threads as u32 * distance * 1_000,
             cycles: 10_000,
             sleep_fn: sleep_clock_nanosleep,
             //sleep_fn : thread::sleep,
@@ -499,6 +500,7 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
     let hist_size: usize = 15;
 
     let num_threads: usize = 12;
+    let distance_us: u32 = 500;
 
     if args.sleep {
         println!("Testing with simple sleep");
@@ -507,7 +509,7 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
 
     if args.nanosleep {
         println!("Testing with clock_nanosleep");
-        run_measurement(MeasurementType::ClockNanosleep, num_threads, hist_size)?;
+        run_measurement(MeasurementType::ClockNanosleep, num_threads, hist_size, distance_us)?;
     }
 
     if args.nanosleepgettime {
@@ -516,6 +518,7 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
             MeasurementType::ClockNanosleepGettime,
             num_threads,
             hist_size,
+            distance_us,
         )?;
     }
 
