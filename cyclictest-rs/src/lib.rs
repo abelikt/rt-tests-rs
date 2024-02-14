@@ -96,6 +96,13 @@ pub fn getscheduler() -> Result<&'static str, Box<dyn Error>> {
     Ok(policy)
 }
 
+pub fn get_sched_get_priority_max() -> Result<(), Box<dyn Error>> {
+    let policy = libc::SCHED_FIFO;
+    let prio = unsafe { libc::sched_get_priority_max(policy)};
+    println!("Maximum prio is {}",prio);
+    Ok(())
+}
+
 pub fn block_alarm() -> Result<(), &'static str> {
     //! Block SIGALRM signal
 
@@ -501,6 +508,8 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
 
     let num_threads: usize = 12;
     let distance_us: u32 = 500;
+
+    get_sched_get_priority_max();
 
     if args.sleep {
         println!("Testing with simple sleep");
