@@ -37,7 +37,7 @@ observe dma setting
 
 To-Do
 * Check if we can replace calls with the nix crate https://crates.io/crates/nix
-
+* Issue: No RT prio is active for for 6.1.0-17-rt-amd64, but seems to work for the original cyclictest
 
 */
 
