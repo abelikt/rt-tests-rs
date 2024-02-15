@@ -214,6 +214,22 @@ fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
             println!("Error {}: {}", code, e);
             return Err("sched_setscheduler fails".into());
         }
+    };
+
+    errno::set_errno( errno::Errno(0));
+    match unsafe { libc::getpriority( libc::PRIO_PROCESS, 0 ) } {
+        -1 => {
+            let e = errno();
+            let code = e.0;
+            if code == 0 {
+                println!("getpriority reports {}", -1); // this can happen
+            }
+            else {
+                println!("Error {}: {}", code, e);
+                return Err("getpriority fails".into());
+            }
+        }
+        p => println!("getpriority reports {}",p),
     }
 
     getscheduler()?;
