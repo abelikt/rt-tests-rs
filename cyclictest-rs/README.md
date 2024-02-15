@@ -72,55 +72,100 @@ Sometimes there are samples about 30µs, this needs more investigation.
 
     $ cargo build --release && sudo target/release/cyclictest-rs  --sleep
     ...
-    Average Latency 61.095µs Maximal Latency 129.054µs
-    Average Latency 63.433µs Maximal Latency 92.947µs
-    Average Latency 55.066µs Maximal Latency 91.985µs
-    Average Latency 56.036µs Maximal Latency 68.941µs
-    Average Latency 54.85µs Maximal Latency 67.71µs
-    Average Latency 55.891µs Maximal Latency 89.831µs
-    Average Latency 55.387µs Maximal Latency 67.228µs
-    Average Latency 56.008µs Maximal Latency 64.793µs
-    Average Latency 53.779µs Maximal Latency 65.245µs
-    Average Latency 56.335µs Maximal Latency 81.936µs
+    Average Latency 68.894µs Maximal Latency 321.632µs
+    Average Latency 73.944µs Maximal Latency 412.127µs
+    Average Latency 73.317µs Maximal Latency 333.374µs
+    Average Latency 74.609µs Maximal Latency 474.898µs
+    Average Latency 71.179µs Maximal Latency 251.477µs
+    Average Latency 69.87µs Maximal Latency 318.315µs
+    Average Latency 73.449µs Maximal Latency 502.901µs
+    Average Latency 70.285µs Maximal Latency 340.889µs
+    Average Latency 71.172µs Maximal Latency 278.278µs
+    Average Latency 67.685µs Maximal Latency 299.499µs
+    Average Latency 60.739µs Maximal Latency 201.68µs
+    Average Latency 71.372µs Maximal Latency 500.387µs
+
 
 
 ## Sleeping with clock_nanosleep and having the right settings in place:
 
     $ cargo build --release && sudo target/release/cyclictest-rs  --nanosleep
     ...
-    Average Latency 2.797µs Maximal Latency 7.946µs
-    Average Latency 2.739µs Maximal Latency 6.744µs
-    Average Latency 2.75µs Maximal Latency 7.576µs
-    Average Latency 2.835µs Maximal Latency 13.437µs
-    Average Latency 2.772µs Maximal Latency 6.453µs
-    Average Latency 2.783µs Maximal Latency 6.354µs
-    Average Latency 2.757µs Maximal Latency 6.113µs
-    Average Latency 2.704µs Maximal Latency 8.077µs
-    Average Latency 2.713µs Maximal Latency 8.988µs
-    Average Latency 2.62µs Maximal Latency 6.865µs
+    Histogram: Rows:Latency_us; Columns:Threads
+    0     0     0     0     0     0     0     0     0     0     0     0     0 
+    1     2     1    14    17    12    10     6     3     0    11     4     5 
+    2  3487  3350  6496  6721  6620  7189  4891  6349  4811  5211  5020  5115 
+    3  5812  5964  2946  2754  2757  2315  4695  3375  4809  4463  4554  4475 
+    4   442   433   349   320   410   302   270   176   252   212   305   282 
+    5   140   143   125   112   101    92    86    48    67    52    61    68 
+    6    58    59    48    51    55    47    24    23    31    27    25    24 
+    7    30    27    13    14    28    26    12     6    19    13    13    13 
+    8    15    11     5     5     6    12    10    10     5     8     7     5 
+    9     6     2     0     3     5     3     2     7     3     1     5     7 
+    10     3     3     1     0     3     2     1     1     1     2     2     3 
+    11     2     2     0     1     0     1     3     1     1     0     1     0 
+    12     1     3     1     2     1     0     0     1     1     0     0     0 
+    13     2     0     1     0     0     0     0     0     0     0     0     1 
+    14     0     1     1     0     1     0     0     0     0     0     1     0 
+    Ov     0     1     0     0     1     1     0     0     0     0     2     2 
+    Stats
+    T0 µs: Min    2.0  Avg    3.2  Max   13.7  Overflows      0
+    T1 µs: Min    2.0  Avg    3.2  Max   17.4  Overflows      1
+    T2 µs: Min    1.9  Avg    3.0  Max   14.8  Overflows      0
+    T3 µs: Min    1.9  Avg    2.9  Max   12.6  Overflows      0
+    T4 µs: Min    1.9  Avg    3.0  Max   18.0  Overflows      1
+    T5 µs: Min    1.9  Avg    2.9  Max   15.1  Overflows      1
+    T6 µs: Min    1.9  Avg    3.1  Max   11.7  Overflows      0
+    T7 µs: Min    1.9  Avg    2.9  Max   12.2  Overflows      0
+    T8 µs: Min    2.0  Avg    3.1  Max   12.9  Overflows      0
+    T9 µs: Min    1.9  Avg    3.0  Max   10.1  Overflows      0
+    T10 µs: Min    2.0  Avg    3.1  Max   21.5  Overflows      2
+    T11 µs: Min    1.9  Avg    3.1  Max   19.4  Overflows      2
+
 
 
 ## Sleeping with clock_nanosleep, measuring time with clock_gettime and having the right settings in place:
 
     $ cargo build --release && sudo target/release/cyclictest-rs  --nanosleepgettime
     ...
-    Average Latency 2.908 Maximal Latency 10.632
-    Average Latency 2.882 Maximal Latency 8.668
-    Average Latency 2.767 Maximal Latency 6.554
-    Average Latency 2.781 Maximal Latency 9.57
-    Average Latency 2.784 Maximal Latency 9.419
-    Average Latency 2.853 Maximal Latency 7.526
-    Average Latency 2.811 Maximal Latency 8.057
-    Average Latency 2.799 Maximal Latency 7.445
-    Average Latency 2.86 Maximal Latency 7.196
-    Average Latency 2.774 Maximal Latency 7.606
+    Histogram: Rows:Latency_us; Columns:Threads
+    0     0     0     0     0     0     0     0     0     0     0     0     0 
+    1    15     9    25    18     2     1    11     9     4     2     4     0 
+    2  4740  4541  6009  6494  4297  5698  5622  6524  6144  6589  3726  3792 
+    3  4754  4999  3400  3103  5099  3894  4022  3154  3466  3107  5843  5819 
+    4   369   332   389   237   392   239   221   205   257   182   322   295 
+    5    72    75   109    76   111    85    69    55    79    79    67    61 
+    6    26    24    36    41    59    45    30    29    26    28    23    18 
+    7    13    12    22    17    23    22    14    13    14     5     6     7 
+    8     5     5     4     9     7     7     5     6    10     3     5     3 
+    9     4     3     5     3     4     7     2     0     0     3     3     2 
+    10     0     0     0     1     1     0     2     3     0     0     1     2 
+    11     1     0     1     0     1     0     0     1     0     1     0     1 
+    12     0     0     0     0     1     0     1     1     0     1     0     0 
+    13     0     0     0     1     0     0     0     0     0     0     0     0 
+    14     1     0     0     0     0     0     1     0     0     0     0     0 
+    Ov     0     0     0     0     3     2     0     0     0     0     0     0 
+    Stats
+    T0 µs: Min    1.9  Avg    3.1  Max   14.5  Overflows      0
+    T1 µs: Min    1.9  Avg    3.1  Max    9.7  Overflows      0
+    T2 µs: Min    1.9  Avg    3.0  Max   11.3  Overflows      0
+    T3 µs: Min    1.9  Avg    2.9  Max   14.0  Overflows      0
+    T4 µs: Min    2.0  Avg    3.2  Max   27.1  Overflows      3
+    T5 µs: Min    2.0  Avg    3.0  Max   20.6  Overflows      2
+    T6 µs: Min    1.9  Avg    3.0  Max   14.5  Overflows      0
+    T7 µs: Min    1.9  Avg    2.9  Max   12.2  Overflows      0
+    T8 µs: Min    1.9  Avg    3.0  Max    8.7  Overflows      0
+    T9 µs: Min    2.0  Avg    2.9  Max   12.7  Overflows      0
+    T10 µs: Min    2.0  Avg    3.2  Max   10.2  Overflows      0
+    T11 µs: Min    2.0  Avg    3.2  Max   11.3  Overflows      0
+
 
 
 # Test Systems
 
 Development:
 
-* OS: Debian Bookworm 12.4
+* OS: Debian Bookworm 12.5
 * cpuinfo : `AMD Ryzen 5 2600 Six-Core Processor`
-* uname : `6.1.0-17-rt-amd64 #1 SMP PREEMPT_RT Debian 6.1.69-1 (2023-12-30) x86_64 GNU/Linux`
+* uname : `6.1.0-18-rt-amd64 #1 SMP PREEMPT_RT Debian 6.1.76-1 (2024-02-01) x86_64 GNU/Linux`
 * Type: Development system; mate desktop and other stuff is running
