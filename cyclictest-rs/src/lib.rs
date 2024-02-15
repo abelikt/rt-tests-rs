@@ -191,6 +191,47 @@ enum Policy {
     Idle = libc::SCHED_IDLE as isize,
 }
 
+fn getpriority() -> Result<(), Box<dyn Error>> {
+    // Probably useless, only reports the nice default_value
+    errno::set_errno( errno::Errno(0));
+    match unsafe { libc::getpriority( libc::PRIO_PROCESS, 0 ) } {
+        -1 => {
+            let e = errno();
+            let code = e.0;
+            if code == 0 {
+                println!("getpriority reports {}", -1); // this can happen
+                Ok(())
+            }
+            else {
+                println!("Error {}: {}", code, e);
+                return Err("getpriority fails".into());
+            }
+        }
+        p => {
+            println!("getpriority reports {}",p);
+            Ok(())
+        }
+    }
+}
+
+fn getschedparam() -> Result<(), Box<dyn Error>> {
+
+    let pid: libc::c_int = 0;
+    let mut params = libc::sched_param {
+        sched_priority: 0,
+    };
+
+    match unsafe { libc::sched_getparam(pid, &mut params) } {
+        0 => println!("getparam reports prio {}",params.sched_priority),
+        _ => {
+            let e = errno();
+            let code = e.0;
+            println!("Error {}: {}", code, e);
+            return Err("sched_getparam fails".into());
+        }
+    };
+    Ok(())
+}
 fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
     //! Set our prority, will fail if we request a real time prio and policy
     //! without root rights.
@@ -215,22 +256,10 @@ fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
             return Err("sched_setscheduler fails".into());
         }
     };
+    
+    getschedparam()?;
 
-    errno::set_errno( errno::Errno(0));
-    match unsafe { libc::getpriority( libc::PRIO_PROCESS, 0 ) } {
-        -1 => {
-            let e = errno();
-            let code = e.0;
-            if code == 0 {
-                println!("getpriority reports {}", -1); // this can happen
-            }
-            else {
-                println!("Error {}: {}", code, e);
-                return Err("getpriority fails".into());
-            }
-        }
-        p => println!("getpriority reports {}",p),
-    }
+    //getpriority()?;
 
     getscheduler()?;
 
