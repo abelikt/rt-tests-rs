@@ -22,7 +22,8 @@ cyclictest.
 
 To-Dos:
 
-* Extend to multiple threads
+* Find equivalent of pthread_attr_setschedpolicy (https://wiki.linuxfoundation.org/realtime/documentation/howto/applications/application_base)
+* DONE Extend to multiple threads
 * Record histograms
 * Plot nice histograms (maybe like in the
     [latency-farm](https://www.osadl.org/Create-a-latency-plot-from-cyclictest-hi.bash-script-for-latency-plot.0.html?&no_cache=1&sword_list[0]=script))
@@ -56,8 +57,8 @@ Observe rt prio:
 
     ps  -m -C cyclictest-rs -o pid,pri,rtprio,uid,cputime,cmd
 
-Note: not sure if the rtprio setting in ps works right. It reports no rtprio
-even though we are using them (Happens on 5.10.0-27-rt-amd64).
+Note: not sure if the rtprio setting in ps is displayed right. It reports no rtprio
+even though we are using them (happens on 5.10.0-27-rt-amd64, 6.1.0-18-rt-amd64).
 
 
 # Some measurements

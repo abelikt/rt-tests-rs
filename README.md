@@ -69,6 +69,9 @@ Real-Time tests for Linux:
 * https://wiki.linuxfoundation.org/realtime/documentation/howto/tools/rt-tests
 * https://wiki.linuxfoundation.org/realtime/documentation/howto/tools/cyclictest/start
 * https://git.kernel.org/pub/scm/utils/rt-tests/rt-tests.git/
+* https://wiki.linuxfoundation.org/realtime/documentation/howto/applications/application_base
+* https://wiki.linuxfoundation.org/realtime/documentation/howto/applications/cyclic
+
 
 OSADL QA monitoring Farm:
 
