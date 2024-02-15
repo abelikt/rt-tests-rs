@@ -56,6 +56,10 @@ Observe rt prio:
 
     ps  -m -C cyclictest-rs -o pid,pri,rtprio,uid,cputime,cmd
 
+Note: not sure if the rtprio setting in ps works right. It reports no rtprio
+even though we are using them (Happens on 5.10.0-27-rt-amd64).
+
+
 # Some measurements
 
 From my developement system (1K samples per line))
