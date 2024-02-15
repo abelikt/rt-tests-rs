@@ -61,7 +61,7 @@ pub fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
     //! Set process affinity to given cpu
     // https://linux.die.net/man/2/sched_setaffinity
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setaffinity.html
-    println!("Setting CPU affinity");
+    println!("Setting CPU affinity to {}", cpu);
     let pid = 0;
     let cpusetsize: libc::size_t = libc::CPU_SETSIZE as libc::size_t;
     let mut cpuset: libc::cpu_set_t = unsafe { mem::zeroed() };
@@ -76,6 +76,7 @@ pub fn setaffinity(cpu: u64) -> Result<(), Box<dyn Error>> {
         0 => (),
         _ => {
             let code = errno();
+            println!("setaffinity fails: {}, {}", code, code.0);
             return Err(format!("setaffinity fails: {}, {}", code, code.0).into());
         }
     }
@@ -191,6 +192,7 @@ enum Policy {
     Idle = libc::SCHED_IDLE as isize,
 }
 
+#[allow(dead_code)]
 fn getpriority() -> Result<(), Box<dyn Error>> {
     // Probably useless, only reports the nice default_value
     errno::set_errno( errno::Errno(0));
@@ -239,7 +241,7 @@ fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
     // https://linux.die.net/man/2/sched_setscheduler
     // https://docs.rs/libc/0.2.153/libc/fn.sched_setscheduler.html
 
-    getscheduler()?;
+    //getscheduler()?;
     println!("Setting policy to {:?} and prio to {}", policy, prio);
     let pid: libc::c_int = 0;
     let libcpolicy = policy as libc::c_int;
@@ -511,7 +513,7 @@ pub fn run_measurement(
             hist_size,
         };
         let handle = thread::spawn(move || {
-            setaffinity(thread as u64);
+            let _ = setaffinity(thread as u64);
             setscheduler(99, Policy::Fifo).expect("setscheduler fails");
             measurement_fn(stats, param)}
         );
@@ -524,7 +526,7 @@ pub fn run_measurement(
 
     // Stats was moved to the Mutex, we just need to access it
     let final_stats = stats.lock().unwrap();
-    println!("Histogram");
+    println!("Histogram: Rows:Latency_us; Columns:Threads");
     for h in 0..hist_size {
         print!("{:2} ", h);
         for i in 0..num_threads {
@@ -563,7 +565,7 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
     let num_threads: usize = 12;
     let distance_us: u32 = 500;
 
-    get_sched_get_priority_max();
+    get_sched_get_priority_max()?;
 
     if args.sleep {
         println!("Testing with simple sleep");
