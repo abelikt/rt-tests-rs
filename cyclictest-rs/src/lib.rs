@@ -289,11 +289,16 @@ fn sample_sleep_with_duration(samples: u32, wait_time_ns: u32) -> Result<(), Box
 fn sample_clock_nanosleep_with_duration(stats: Arc<Mutex<Stats>>, param: ThreadParam) {
     //! Messure latency of clock_nanosleep with time::Duration
 
+
     let sleep_time = Duration::from_nanos(param.interval as u64);
     let mut latency: Duration;
     let mut accumulator: Duration = Duration::new(0, 0);
     let mut max_latency = Duration::new(0, 0);
     let mut min_latency = Duration::MAX;
+
+    //setscheduler(99, Policy::Fifo).expect("setscheduler fails");
+    //setaffinity(param.thread_num as u64).expect("setaffinity fails");
+
     for _s in 0..param.cycles {
         //TODO also check absolute time
         let start = Instant::now();
@@ -452,8 +457,8 @@ pub fn run_measurement(
     distance : u32
 ) -> Result<(), Box<dyn Error>> {
     mlockall()?;
-    setscheduler(99, Policy::Fifo)?;
-    setaffinity(1)?;
+    //setscheduler(99, Policy::Fifo)?;
+    //setaffinity(0)?;
     block_alarm()?;
 
     // We need to keep the file open to disable power management
@@ -476,7 +481,11 @@ pub fn run_measurement(
             //sleep_fn : thread::sleep,
             hist_size,
         };
-        let handle = thread::spawn(move || measurement_fn(stats, param));
+        let handle = thread::spawn(move || {
+            setaffinity(thread as u64);
+            setscheduler(99, Policy::Fifo).expect("setscheduler fails");
+            measurement_fn(stats, param)}
+        );
 
         handles.push(handle);
     }
