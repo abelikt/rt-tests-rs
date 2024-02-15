@@ -99,8 +99,8 @@ pub fn getscheduler() -> Result<&'static str, Box<dyn Error>> {
 
 pub fn get_sched_get_priority_max() -> Result<(), Box<dyn Error>> {
     let policy = libc::SCHED_FIFO;
-    let prio = unsafe { libc::sched_get_priority_max(policy)};
-    println!("Maximum prio is {}",prio);
+    let prio = unsafe { libc::sched_get_priority_max(policy) };
+    println!("Maximum prio is {}", prio);
     Ok(())
 }
 
@@ -195,36 +195,32 @@ enum Policy {
 #[allow(dead_code)]
 fn getpriority() -> Result<(), Box<dyn Error>> {
     // Probably useless, only reports the nice default_value
-    errno::set_errno( errno::Errno(0));
-    match unsafe { libc::getpriority( libc::PRIO_PROCESS, 0 ) } {
+    errno::set_errno(errno::Errno(0));
+    match unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) } {
         -1 => {
             let e = errno();
             let code = e.0;
             if code == 0 {
                 println!("getpriority reports {}", -1); // this can happen
                 Ok(())
-            }
-            else {
+            } else {
                 println!("Error {}: {}", code, e);
-                return Err("getpriority fails".into());
+                Err("getpriority fails".into())
             }
         }
         p => {
-            println!("getpriority reports {}",p);
+            println!("getpriority reports {}", p);
             Ok(())
         }
     }
 }
 
 fn getschedparam() -> Result<(), Box<dyn Error>> {
-
     let pid: libc::c_int = 0;
-    let mut params = libc::sched_param {
-        sched_priority: 0,
-    };
+    let mut params = libc::sched_param { sched_priority: 0 };
 
     match unsafe { libc::sched_getparam(pid, &mut params) } {
-        0 => println!("getparam reports prio {}",params.sched_priority),
+        0 => println!("getparam reports prio {}", params.sched_priority),
         _ => {
             let e = errno();
             let code = e.0;
@@ -258,7 +254,7 @@ fn setscheduler(prio: i32, policy: Policy) -> Result<(), Box<dyn Error>> {
             return Err("sched_setscheduler fails".into());
         }
     };
-    
+
     getschedparam()?;
 
     //getpriority()?;
@@ -319,7 +315,6 @@ fn sample_sleep_with_duration(samples: u32, wait_time_ns: u32) -> Result<(), Box
 
 fn sample_clock_nanosleep_with_duration(stats: Arc<Mutex<Stats>>, param: ThreadParam) {
     //! Messure latency of clock_nanosleep with time::Duration
-
 
     let sleep_time = Duration::from_nanos(param.interval as u64);
     let mut latency: Duration;
@@ -409,7 +404,7 @@ fn sample_clock_nanosleep_with_gettime(stats: Arc<Mutex<Stats>>, param: ThreadPa
         latency = Timespec::diff_ns(start, end) as u64; // - sleep_time;
         latency -= sleep_time;
 
-        accumulator += latency as u64;
+        accumulator += latency;
         if latency > max_latency {
             max_latency = latency;
         }
@@ -485,7 +480,7 @@ pub fn run_measurement(
     measurement: MeasurementType,
     num_threads: usize,
     hist_size: usize,
-    distance : u32
+    distance: u32,
 ) -> Result<(), Box<dyn Error>> {
     mlockall()?;
     //setscheduler(99, Policy::Fifo)?;
@@ -515,8 +510,8 @@ pub fn run_measurement(
         let handle = thread::spawn(move || {
             let _ = setaffinity(thread as u64);
             setscheduler(99, Policy::Fifo).expect("setscheduler fails");
-            measurement_fn(stats, param)}
-        );
+            measurement_fn(stats, param)
+        });
 
         handles.push(handle);
     }
@@ -574,7 +569,12 @@ pub fn cyclictest_main() -> Result<(), Box<dyn Error>> {
 
     if args.nanosleep {
         println!("Testing with clock_nanosleep");
-        run_measurement(MeasurementType::ClockNanosleep, num_threads, hist_size, distance_us)?;
+        run_measurement(
+            MeasurementType::ClockNanosleep,
+            num_threads,
+            hist_size,
+            distance_us,
+        )?;
     }
 
     if args.nanosleepgettime {
